@@ -1,3 +1,2 @@
-/Users/audrey/Documents/CS Degree/CS374/cmake-build-debug/CMakeFiles/CS374.dir
 /Users/audrey/Documents/CS Degree/CS374/cmake-build-debug/CMakeFiles/edit_cache.dir
 /Users/audrey/Documents/CS Degree/CS374/cmake-build-debug/CMakeFiles/rebuild_cache.dir

@@ -172,12 +172,17 @@ expand(char const *word)
   build_str(pos, start);
   while (c) {
     if (c == '!') build_str("<BGPID>", NULL);
-    else if (c == '$') build_str("<PID>", NULL);
+    else if (c == '$') {
+        char *pid;
+        int get_pid = asprintf(&pid, "%d", getpid());
+        build_str(pid, NULL);
+        free (pid);}
     else if (c == '?') build_str("<STATUS>", NULL);
     else if (c == '{') {
-      build_str("<Parameter: ", NULL);
-      build_str(start + 2, end - 1);
-      build_str(">", NULL);
+      char const *param = word;
+      char *parameter;
+      strncpy(parameter, start+2, strlen(param)-3);
+      build_str(getenv(parameter), NULL);
     }
     pos = end;
     c = param_scan(pos, &start, &end);
