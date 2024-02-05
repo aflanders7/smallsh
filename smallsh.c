@@ -182,7 +182,8 @@ expand(char const *word)
       char const *param = word;
       char *parameter;
       strncpy(parameter, start+2, strlen(param)-3);
-      build_str(getenv(parameter), NULL);
+      if (getenv(parameter) == NULL) {build_str("", NULL);}
+      else {build_str(getenv(parameter), NULL);}
     }
     pos = end;
     c = param_scan(pos, &start, &end);

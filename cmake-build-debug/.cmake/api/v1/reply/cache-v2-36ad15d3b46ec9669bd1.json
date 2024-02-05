@@ -819,7 +819,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "Project"
+			"value" : "CS374"
 		},
 		{
 			"name" : "CMAKE_RANLIB",
