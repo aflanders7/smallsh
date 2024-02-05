@@ -42,6 +42,11 @@ int main(int argc, char *argv[])
     if (line_len < 0) err(1, "%s", input_fn);
     
     size_t nwords = wordsplit(line);
+    char exit_str[] = "exit";
+    if (strcmp(words[0], exit_str) == 0) {
+        int val = atoi(words[1]);
+        exit(val);
+    }
     for (size_t i = 0; i < nwords; ++i) {
       fprintf(stderr, "Word %zu: %s\n", i, words[i]);
       char *exp_word = expand(words[i]);
