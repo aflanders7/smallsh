@@ -44,6 +44,12 @@ int main(int argc, char *argv[])
     size_t nwords = wordsplit(line);
     char exit_str[] = "exit";
     if (strcmp(words[0], exit_str) == 0) {
+        if (nwords > 2) {
+            fprintf(stderr, "Too many arguments given.");
+        }
+        if (isdigit((unsigned char) words[1])==0) {
+            fprintf(stderr, "Argument is not an integer.");
+        }
         int val = atoi(words[1]);
         exit(val);
     }
