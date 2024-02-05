@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
     if (line_len < 0) err(1, "%s", input_fn);
     
     size_t nwords = wordsplit(line);
+
     char exit_str[] = "exit";
     if (strcmp(words[0], exit_str) == 0) {
         if (nwords > 2) {
@@ -53,6 +54,16 @@ int main(int argc, char *argv[])
         int val = atoi(words[1]);
         exit(val);
     }
+
+    char cd_str[] = "cd";
+    if (strcmp(words[0], cd_str) == 0) {
+        if (nwords > 2) {
+            fprintf(stderr, "Too many arguments given.");
+        }
+        if (nwords == 1) {chdir(getenv("HOME"));}
+        else {chdir(words[1]);}
+    }
+
     for (size_t i = 0; i < nwords; ++i) {
       fprintf(stderr, "Word %zu: %s\n", i, words[i]);
       char *exp_word = expand(words[i]);
