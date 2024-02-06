@@ -30,6 +30,8 @@ int main(int argc, char *argv[])
 
   char *line = NULL;
   size_t n = 0;
+  char exit_str[] = "exit";
+  char cd_str[] = "cd";
   for (;;) {
 //prompt:;
     /* TODO: Manage background processes */
@@ -43,7 +45,6 @@ int main(int argc, char *argv[])
     
     size_t nwords = wordsplit(line);
 
-    char exit_str[] = "exit";
     if (strcmp(words[0], exit_str) == 0) {
         if (nwords > 2) {
             fprintf(stderr, "Too many arguments given.");
@@ -61,8 +62,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    char cd_str[] = "cd";
-    if (strcmp(words[0], cd_str) == 0) {
+    else if (strcmp(words[0], cd_str) == 0) {
         if (nwords > 2) {
             fprintf(stderr, "Too many arguments given.");
         }
@@ -80,13 +80,26 @@ int main(int argc, char *argv[])
             * printf(buffer); */
         }
     }
+    else {
+        int   childStatus;
+        pid_t child = fork();
+        if(child == -1){
+            perror("fork() failed.");
+            exit(1);
+        }
+        if(child == 0){
+            if (execvp(words[0], words) == -1) {fprintf(stderr, "Child failed to exec.");}
+
+        }
+        /* TODO: reset signals */
+    }
 
     for (size_t i = 0; i < nwords; ++i) {
-      fprintf(stderr, "Word %zu: %s\n", i, words[i]);
+      /* fprintf(stderr, "Word %zu: %s\n", i, words[i]); */
       char *exp_word = expand(words[i]);
       free(words[i]);
       words[i] = exp_word;
-      fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]);
+      /* fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]); */
     }
   }
 }
