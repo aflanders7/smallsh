@@ -12,6 +12,11 @@
 #define MAX_WORDS 512
 #endif
 
+#define O_WRONLY         01
+#define O_CREAT          0100
+#define O_TRUNC          01000
+#define O_APPEND          02000
+
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
@@ -96,7 +101,8 @@ int main(int argc, char *argv[])
         pid_t childPid = fork();
 
         for (size_t i = 0; i < nwords; ++i) {
-            if (strcmp(words[i], "<") == 0) {
+            if (i == nwords - 1 && strcmp(words[i], "&") == 0) {/* set operator to true*/}
+            else if (strcmp(words[i], "<") == 0) {
                 if (i+1 == nwords) {
                     fprintf(stderr, "No file specified.");
                 } else {
@@ -108,8 +114,7 @@ int main(int argc, char *argv[])
                 if (i+1 == nwords) {
                     fprintf(stderr, "No file specified.");
                 } else {
-                    freopen(words[i+1], "w", stdout);
-                    /* open(words[i+1], O_WRONLY| O_CREAT| O_TRUNC, 0777); */
+                    int file = open(words[i+1], O_WRONLY| O_CREAT| O_TRUNC, 0777);
                     i=i+1;
                 }
             }
@@ -117,7 +122,7 @@ int main(int argc, char *argv[])
                 if (i+1 == nwords) {
                     fprintf(stderr, "No file specified.");
                 } else {
-                    freopen(words[i+1], "a", stdout);
+                    int file1 = open(words[i+1], O_WRONLY| O_CREAT| O_APPEND, 0777);
                     i=i+1;
                 }
             }
@@ -137,8 +142,8 @@ int main(int argc, char *argv[])
         else {
             childPid = waitpid(childPid, &childStatus, 0);
         }
-        /* TODO: reset signals, redirection,  return 0;*/
         return 0;
+        /* TODO: reset signals, redirection,  return 0;*/
     }
   }
 }
