@@ -47,6 +47,13 @@ int main(int argc, char *argv[])
     if (line_len < 0) err(1, "%s", input_fn);
     
     size_t nwords = wordsplit(line);
+    for (size_t i = 0; i < nwords; ++i) {
+          /* fprintf(stderr, "Word %zu: %s\n", i, words[i]); */
+          char *exp_word = expand(words[i]);
+          free(words[i]);
+          words[i] = exp_word;
+          /* fprintf(stdout, "%s", words[i]); */
+    }
 
     if (strcmp(words[0], exit_str) == 0) {
         if (nwords > 2) {
@@ -97,23 +104,9 @@ int main(int argc, char *argv[])
         }
         else {
             childPid = waitpid(childPid, &childStatus, 0);
-            if(WIFEXITED(childStatus)){
-                printf("Child %d exited normally with status %d\n", childPid, WEXITSTATUS(childStatus));
-            } else{
-                fprintf(stderr, "Child %d exited abnormally due to signal %d\n", childPid, WTERMSIG(childStatus));
-                exit(1);
-            }
         }
         return 0;
         /* TODO: reset signals, redirection */
-    }
-
-    for (size_t i = 0; i < nwords; ++i) {
-      /* fprintf(stderr, "Word %zu: %s\n", i, words[i]); */
-      char *exp_word = expand(words[i]);
-      free(words[i]);
-      words[i] = exp_word;
-      /* fprintf(stderr, "Expanded Word %zu: %s\n", i, words[i]); */
     }
   }
 }
@@ -240,9 +233,11 @@ expand(char const *word)
     if (c == '!') build_str("<BGPID>", NULL);
     else if (c == '$') {
         char *pid;
-        /* int get_pid = asprintf(&pid, "%d", getpid()); */
+        int get_pid = asprintf(&pid, "%d", getpid());
         build_str(pid, NULL);
-        free (pid);}
+        free (pid);
+        /* build_str("test", NULL); */
+        }
     else if (c == '?') build_str("<STATUS>", NULL);
     else if (c == '{') {
       char const *param = word;
