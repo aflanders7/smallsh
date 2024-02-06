@@ -17,6 +17,7 @@ size_t wordsplit(char const *line);
 char * expand(char const *word);
 int foreground = 0;
 char const *background = "";
+char *childwords[MAX_WORDS] = {0};
 
 
 int main(int argc, char *argv[])
@@ -94,19 +95,39 @@ int main(int argc, char *argv[])
         int childStatus;
         pid_t childPid = fork();
 
+        for (size_t i = 0; i < nwords; ++i) {
+            if (strcmp(words[i], "<") == 0) {
+                if (i+1 == nwords) {
+                    fprintf(stderr, "No file specified.");
+                } else {
+                    freopen(words[i+1], "r", stdin);
+                    i=i+1;
+                }
+            }
+            else if (strcmp(words[i], ">") == 0) {
+                fprintf(stderr, "> identified>.");
+            }
+            else if (strcmp(words[i], ">>") == 0) {
+                fprintf(stderr, ">> identified>.");
+            }
+            else {
+                childwords[i] = words[i];
+            }
+        }
+
         if(childPid == -1){
             perror("fork() failed.");
             exit(1);
         }
         else if(childPid == 0){
-            if (execvp(words[0], words) == -1) {fprintf(stderr, "Child failed to exec.");}
+            if (execvp(childwords[0], childwords) == -1) {fprintf(stderr, "Child failed to exec.");}
 
         }
         else {
             childPid = waitpid(childPid, &childStatus, 0);
         }
-
         /* TODO: reset signals, redirection,  return 0;*/
+        return 0;
     }
   }
 }
