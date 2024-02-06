@@ -16,6 +16,7 @@ char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
 
+
 int main(int argc, char *argv[])
 {
   FILE *input = stdin;
@@ -81,17 +82,28 @@ int main(int argc, char *argv[])
         }
     }
     else {
-        int   childStatus;
-        pid_t child = fork();
-        if(child == -1){
+        int childStatus;
+        pid_t childPid = fork();
+
+        if(childPid == -1){
             perror("fork() failed.");
             exit(1);
         }
-        if(child == 0){
+        else if(childPid == 0){
             if (execvp(words[0], words) == -1) {fprintf(stderr, "Child failed to exec.");}
 
         }
-        /* TODO: reset signals */
+        else {
+            childPid = waitpid(childPid, &childStatus, 0);
+            if(WIFEXITED(childStatus)){
+                printf("Child %d exited normally with status %d\n", childPid, WEXITSTATUS(childStatus));
+            } else{
+                fprintf(stderr, "Child %d exited abnormally due to signal %d\n", childPid, WTERMSIG(childStatus));
+                exit(1);
+            }
+        }
+        return 0;
+        /* TODO: reset signals, redirection */
     }
 
     for (size_t i = 0; i < nwords; ++i) {
