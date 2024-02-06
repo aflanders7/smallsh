@@ -15,6 +15,8 @@
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
+int foreground = 0;
+char const *background = "";
 
 
 int main(int argc, char *argv[])
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Too many arguments given.");
         }
         /* TODO: add in foreground exit status */
-        if (nwords == 1) {exit(1);}
+        if (nwords == 1) {exit(foreground);}
         char *endptr;
         long int digit = strtol(words[1], &endptr, 10);
         if (*endptr != '\0') {
