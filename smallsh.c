@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
           /* fprintf(stderr, "Word %zu: %s\n", i, words[i]); */
           char *exp_word = expand(words[i]);
           free(words[i]);
-          words[i] = exp_word;
-          /* fprintf(stdout, "%s", words[i]); */
+          words[i] = exp_word; /* This is needed to print to stdout */
+        /* fprintf(stdout, "%s", words[i]); */
     }
 
     if (strcmp(words[0], exit_str) == 0) {
@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
         else {
             childPid = waitpid(childPid, &childStatus, 0);
         }
-        return 0;
-        /* TODO: reset signals, redirection */
+
+        /* TODO: reset signals, redirection,  return 0;*/
     }
   }
 }
@@ -232,11 +232,12 @@ expand(char const *word)
   while (c) {
     if (c == '!') build_str("<BGPID>", NULL);
     else if (c == '$') {
-        char *pid;
-        int get_pid = asprintf(&pid, "%d", getpid());
-        build_str(pid, NULL);
-        free (pid);
+        /* char *pid;
+        * int get_pid = asprintf(&pid, "%d", getpid());
+        * build_str(pid, NULL);
+        * free (pid); */
         /* build_str("test", NULL); */
+        build_str("test", NULL);
         }
     else if (c == '?') build_str("<STATUS>", NULL);
     else if (c == '{') {
