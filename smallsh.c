@@ -105,10 +105,21 @@ int main(int argc, char *argv[])
                 }
             }
             else if (strcmp(words[i], ">") == 0) {
-                fprintf(stderr, "> identified>.");
+                if (i+1 == nwords) {
+                    fprintf(stderr, "No file specified.");
+                } else {
+                    freopen(words[i+1], "w", stdout);
+                    /* open(words[i+1], O_WRONLY| O_CREAT| O_TRUNC, 0777); */
+                    i=i+1;
+                }
             }
             else if (strcmp(words[i], ">>") == 0) {
-                fprintf(stderr, ">> identified>.");
+                if (i+1 == nwords) {
+                    fprintf(stderr, "No file specified.");
+                } else {
+                    freopen(words[i+1], "a", stdout);
+                    i=i+1;
+                }
             }
             else {
                 childwords[i] = words[i];
