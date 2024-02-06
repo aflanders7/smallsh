@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 //prompt:;
     /* TODO: Manage background processes */
 
-    /* TODO: prompt */
+    /* TODO: prompt ; interactive otherwise it's a file*/
     if (input == stdin) {
 
     }
@@ -51,8 +51,9 @@ int main(int argc, char *argv[])
         if (isdigit((unsigned char) words[1])==0) {
             fprintf(stderr, "Argument is not an integer.");
         }
-        int val = atoi(words[1]);
-        exit(val);
+        else {
+            int val = atoi(words[1]);
+            exit(val);}
     }
 
     char cd_str[] = "cd";
@@ -60,8 +61,19 @@ int main(int argc, char *argv[])
         if (nwords > 2) {
             fprintf(stderr, "Too many arguments given.");
         }
-        if (nwords == 1) {chdir(getenv("HOME"));}
-        else {chdir(words[1]);}
+        if (nwords == 1) {chdir(getenv("HOME"));
+            /* char buffer[FILENAME_MAX];
+            * getcwd(buffer, FILENAME_MAX );
+            * printf(buffer); */
+        }
+        else {
+            if (chdir(words[1]) != 0) {
+                fprintf(stderr, "Changing directory failed.");
+            }
+            /* char buffer[FILENAME_MAX];
+            * getcwd(buffer, FILENAME_MAX );
+            * printf(buffer); */
+        }
     }
 
     for (size_t i = 0; i < nwords; ++i) {
@@ -196,7 +208,7 @@ expand(char const *word)
     if (c == '!') build_str("<BGPID>", NULL);
     else if (c == '$') {
         char *pid;
-        int get_pid = asprintf(&pid, "%d", getpid());
+        /* int get_pid = asprintf(&pid, "%d", getpid()); */
         build_str(pid, NULL);
         free (pid);}
     else if (c == '?') build_str("<STATUS>", NULL);
