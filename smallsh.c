@@ -48,12 +48,17 @@ int main(int argc, char *argv[])
         if (nwords > 2) {
             fprintf(stderr, "Too many arguments given.");
         }
-        if (isdigit((unsigned char) words[1])==0) {
+        /* TODO: add in foreground exit status */
+        if (nwords == 1) {exit(1);}
+        char *endptr;
+        long int digit = strtol(words[1], &endptr, 10);
+        if (*endptr != '\0') {
             fprintf(stderr, "Argument is not an integer.");
         }
         else {
             int val = atoi(words[1]);
-            exit(val);}
+            exit(val);
+        }
     }
 
     char cd_str[] = "cd";
