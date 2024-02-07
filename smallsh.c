@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
+#include <sys/wait.h>
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -23,6 +24,7 @@ char * expand(char const *word);
 int foreground = 0;
 char const *background = "";
 char *childwords[MAX_WORDS] = {0};
+int childStatus = 0;
 
 
 int main(int argc, char *argv[])
@@ -32,7 +34,7 @@ int main(int argc, char *argv[])
   if (argc == 2) {
     input_fn = argv[1];
     input = fopen(input_fn, "re");
-    if (!input) err(1, "%s", input_fn);
+    if (!input) err(1, "%s test1", input_fn);
   } else if (argc > 2) {
     errx(1, "too many arguments");
   }
@@ -49,8 +51,9 @@ int main(int argc, char *argv[])
     if (input == stdin) {
 
     }
+    if (feof(input)) {exit(0);}
     ssize_t line_len = getline(&line, &n, input);
-    if (line_len < 0) err(1, "%s", input_fn);
+    if (line_len < 0) {exit(0); };
     
     size_t nwords = wordsplit(line);
     for (size_t i = 0; i < nwords; ++i) {
@@ -66,7 +69,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Too many arguments given.");
         }
         /* TODO: add in foreground exit status */
-        if (nwords == 1) {exit(foreground);}
+        if (nwords == 1) {exit(childStatus);}
         char *endptr;
         long int digit = strtol(words[1], &endptr, 10);
         if (*endptr != '\0') {
@@ -97,7 +100,6 @@ int main(int argc, char *argv[])
         }
     }
     else {
-        int childStatus;
         pid_t spawnPID = fork();
 
         switch (spawnPID) {
@@ -106,6 +108,7 @@ int main(int argc, char *argv[])
                 exit(1);
                 break;
             case 0:
+                fflush(stdout);
                 for (size_t i = 0; i < nwords; ++i) {
                     if (i == nwords - 1 && strcmp(words[i], "&") == 0) {/* set operator to true*/}
                     else if (strcmp(words[i], "<") == 0) {
@@ -153,15 +156,22 @@ int main(int argc, char *argv[])
                     }
                 }
 
-                if (execvp(childwords[0], childwords) == -1) { fprintf(stderr, "Child failed to exec."); }
+                if (execvp(childwords[0], childwords) == -1) {
+                    fprintf(stderr, "Child failed to exec."); exit(1);
+                }
+                /*TODO : this actually needs to be sigcont signal, not wifexited I believe */
+                if(WIFEXITED(childStatus)){} else {
+                    fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID); exit(1);
+                }
+                fflush(stdout);
             default:
                 waitpid(spawnPID, &childStatus, 0);
                 break;
         }
-        return 0;
         /* TODO: reset signals, redirection,  return 0;*/
     }
   }
+  return 0;
 }
 
 char *words[MAX_WORDS] = {0};
@@ -295,7 +305,12 @@ expand(char const *word)
         build_str(pid, NULL);
         free (pid);
         }
-    else if (c == '?') build_str("<STATUS>", NULL);
+    else if (c == '?') {
+        char *pid;
+        int get_pid = asprintf(&pid, "%d", WEXITSTATUS(childStatus));
+        build_str(pid, NULL);
+        free(pid);
+    }
     else if (c == '{') {
       char const *param = word;
       char *parameter;
