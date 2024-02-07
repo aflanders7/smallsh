@@ -98,49 +98,65 @@ int main(int argc, char *argv[])
     }
     else {
         int childStatus;
-        pid_t childPid = fork();
+        pid_t spawnPID = fork();
 
-        for (size_t i = 0; i < nwords; ++i) {
-            if (i == nwords - 1 && strcmp(words[i], "&") == 0) {/* set operator to true*/}
-            else if (strcmp(words[i], "<") == 0) {
-                if (i+1 == nwords) {
-                    fprintf(stderr, "No file specified.");
-                } else {
-                    freopen(words[i+1], "r", stdin);
-                    i=i+1;
+        switch (spawnPID) {
+            case -1:
+                perror("fork() failed\n");
+                exit(1);
+                break;
+            case 0:
+                for (size_t i = 0; i < nwords; ++i) {
+                    if (i == nwords - 1 && strcmp(words[i], "&") == 0) {/* set operator to true*/}
+                    else if (strcmp(words[i], "<") == 0) {
+                        if (i + 1 == nwords) {
+                            fprintf(stderr, "No file specified.");
+                        } else {
+                            freopen(words[i + 1], "r", stdin);
+                            /*TODO : Handle error, close file */
+                            i = i + 1;
+                        }
+                    } else if (strcmp(words[i], ">") == 0) {
+                        if (i + 1 == nwords) {
+                            fprintf(stderr, "No file specified.");
+                        } else {
+                            int file = open(words[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0777);
+                            if (file == -1) {
+                                perror("open()");
+                                exit(1);
+                            }
+                            int result = dup2(file, 1);
+                            if (result == -1) {
+                                perror("dup2");
+                                exit(2);
+                            }
+                            i = i + 1;
+                        }
+                    } else if (strcmp(words[i], ">>") == 0) {
+                        if (i + 1 == nwords) {
+                            fprintf(stderr, "No file specified.");
+                        } else {
+                            int file1 = open(words[i + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
+                            if (file1 == -1) {
+                                perror("open()");
+                                exit(1);
+                            }
+                            int result = dup2(file1, 1);
+                            if (result == -1) {
+                                perror("dup2");
+                                exit(2);
+                            }
+                            i = i + 1;
+                        }
+                    } else {
+                        childwords[i] = words[i];
+                    }
                 }
-            }
-            else if (strcmp(words[i], ">") == 0) {
-                if (i+1 == nwords) {
-                    fprintf(stderr, "No file specified.");
-                } else {
-                    int file = open(words[i+1], O_WRONLY| O_CREAT| O_TRUNC, 0777);
-                    i=i+1;
-                }
-            }
-            else if (strcmp(words[i], ">>") == 0) {
-                if (i+1 == nwords) {
-                    fprintf(stderr, "No file specified.");
-                } else {
-                    int file1 = open(words[i+1], O_WRONLY| O_CREAT| O_APPEND, 0777);
-                    i=i+1;
-                }
-            }
-            else {
-                childwords[i] = words[i];
-            }
-        }
 
-        if(childPid == -1){
-            perror("fork() failed.");
-            exit(1);
-        }
-        else if(childPid == 0){
-            if (execvp(childwords[0], childwords) == -1) {fprintf(stderr, "Child failed to exec.");}
-
-        }
-        else {
-            childPid = waitpid(childPid, &childStatus, 0);
+                if (execvp(childwords[0], childwords) == -1) { fprintf(stderr, "Child failed to exec."); }
+            default:
+                waitpid(spawnPID, &childStatus, 0);
+                break;
         }
         return 0;
         /* TODO: reset signals, redirection,  return 0;*/
@@ -274,7 +290,10 @@ expand(char const *word)
         * build_str(pid, NULL);
         * free (pid); */
         /* build_str("test", NULL); */
-        build_str("test", NULL);
+        char *pid;
+        int get_pid = asprintf(&pid, "%d", getpid());
+        build_str(pid, NULL);
+        free (pid);
         }
     else if (c == '?') build_str("<STATUS>", NULL);
     else if (c == '{') {
