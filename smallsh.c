@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -17,6 +18,10 @@
 #define O_CREAT          0100
 #define O_TRUNC          01000
 #define O_APPEND          02000
+
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+struct sigaction sigint_action = {0}, ignore_action = {0};
+void sigint_handler(int sig) {}
 
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
@@ -49,6 +54,9 @@ int main(int argc, char *argv[])
 
     /* TODO: prompt ; interactive otherwise it's a file*/
     if (input == stdin) {
+        sigint_action.sa_handler = sigint_handler;
+        ignore_action.sa_handler = SIG_IGN;
+        sigaction(SIGTSTP, &ignore_action, NULL);
 
     }
     if (feof(input)) {exit(0);}
@@ -101,6 +109,11 @@ int main(int argc, char *argv[])
     }
     else {
         pid_t spawnPID = fork();
+        if (input == stdin) {
+            ignore_action.sa_handler = SIG_IGN;
+            sigaction(SIGTSTP, &ignore_action, NULL);
+            sigaction(SIGINT, &sigint_action, NULL);
+        }
 
         switch (spawnPID) {
             case -1:
