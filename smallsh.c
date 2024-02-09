@@ -29,9 +29,11 @@ char * expand(char const *word);
 int foreground = 0;
 int background = 0;
 int bgpid = 0;
+pid_t childPID;
 
 char *childwords[MAX_WORDS] = {0};
 int childStatus = 0;
+int spawnStatus = 0;
 
 int main(int argc, char *argv[])
 {
@@ -50,16 +52,18 @@ int main(int argc, char *argv[])
     char exit_str[] = "exit";
     char cd_str[] = "cd";
     for (;;) {
-//prompt:;
+prompt:;
         /* TODO: Manage background processes */
-        pid_t childPID;
-        while (waitpid(childPID, &childStatus, WNOHANG | WUNTRACED) > 0) {
+        fprintf(stderr, "it got here1");
+        while ((childPID = waitpid(childPID, &spawnStatus, WNOHANG | WUNTRACED)) > 0) {
             fprintf(stderr, "test wait");
-            if (WIFSTOPPED(childStatus)){
+            if (WIFSTOPPED(spawnStatus)){
                 fprintf(stderr, "test stop");
                 kill(childPID, SIGCONT);
                 fprintf(stderr, "Child process %d stopped. Continuing.\n", childPID);
-
+            }
+            if (WIFSIGNALED(spawnStatus)){
+                fprintf(stderr, "background signaled");
             }
         }
 
@@ -74,7 +78,6 @@ int main(int argc, char *argv[])
 
         }
 
-        if (feof(input)) {exit(0);}
         ssize_t line_len = getline(&line, &n, input);
         if (line_len < 0) {exit(0); };
 
@@ -200,6 +203,7 @@ int main(int argc, char *argv[])
                         /* tested, works */
                         background = 1;
                         bgpid = spawnPID;
+                        childPID = spawnPID;
                     }
                     else {
                         background = 0;
@@ -218,13 +222,8 @@ int main(int argc, char *argv[])
                     }
 
                     else {
-                        bgpid = spawnPID;
-                        childPID = spawnPID;
-                        spawnPID = waitpid(spawnPID, &childStatus, WNOHANG | WUNTRACED);
-                    }
-
-                    if (WIFSIGNALED(childStatus) && background == 1){
-                        fprintf(stderr, "background signaled");
+                        fprintf(stderr, "it got here");
+                        goto prompt;
                     }
                     break;
             }
