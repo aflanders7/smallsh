@@ -20,7 +20,7 @@
 #define O_APPEND          02000
 
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
-struct sigaction sigint_action = {0}, ignore_action = {0};
+struct sigaction sigint_action = {0}, ignore_action = {0}, sigint_old = {0}, sigstp_old = {0};
 void sigint_handler(int sig) {}
 
 char *words[MAX_WORDS];
@@ -55,13 +55,15 @@ int main(int argc, char *argv[])
     /* TODO: prompt ; interactive otherwise it's a file*/
     if (input == stdin) {
         sigint_action.sa_handler = sigint_handler;
-        ignore_action.sa_handler = SIG_IGN;
-        sigaction(SIGTSTP, &ignore_action, NULL);
+        sigaction(SIGINT, &sigint_action, &sigint_old);
 
+        ignore_action.sa_handler = SIG_IGN;
+        sigaction(SIGTSTP, &ignore_action, &sigstp_old);
     }
     if (feof(input)) {exit(0);}
     ssize_t line_len = getline(&line, &n, input);
     if (line_len < 0) {exit(0); };
+
     
     size_t nwords = wordsplit(line);
     for (size_t i = 0; i < nwords; ++i) {
@@ -109,10 +111,10 @@ int main(int argc, char *argv[])
     }
     else {
         pid_t spawnPID = fork();
+
         if (input == stdin) {
-            ignore_action.sa_handler = SIG_IGN;
-            sigaction(SIGTSTP, &ignore_action, NULL);
-            sigaction(SIGINT, &sigint_action, NULL);
+            sigaction(SIGTSTP, &sigstp_old, NULL);
+            sigaction(SIGINT, &sigint_old, NULL);
         }
 
         switch (spawnPID) {
@@ -135,7 +137,7 @@ int main(int argc, char *argv[])
                     } else if (strcmp(words[i], ">") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else {
+                        } else { /*
                             int file = open(words[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0777);
                             if (file == -1) {
                                 perror("open()");
@@ -145,13 +147,13 @@ int main(int argc, char *argv[])
                             if (result == -1) {
                                 perror("dup2");
                                 exit(2);
-                            }
+                            } */
                             i = i + 1;
-                        }
-                    } else if (strcmp(words[i], ">>") == 0) {
+
+                    }} else if (strcmp(words[i], ">>") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else {
+                        } else { /*
                             int file1 = open(words[i + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
                             if (file1 == -1) {
                                 perror("open()");
@@ -162,7 +164,7 @@ int main(int argc, char *argv[])
                                 perror("dup2");
                                 exit(2);
                             }
-                            i = i + 1;
+                            i = i + 1; */
                         }
                     } else {
                         childwords[i] = words[i];
@@ -313,16 +315,17 @@ expand(char const *word)
         * build_str(pid, NULL);
         * free (pid); */
         /* build_str("test", NULL); */
+        /*
         char *pid;
         int get_pid = asprintf(&pid, "%d", getpid());
         build_str(pid, NULL);
-        free (pid);
+        free (pid); */
         }
-    else if (c == '?') {
+    else if (c == '?') { /*
         char *pid;
         int get_pid = asprintf(&pid, "%d", WEXITSTATUS(childStatus));
         build_str(pid, NULL);
-        free(pid);
+        free(pid); */
     }
     else if (c == '{') {
       char const *param = word;
