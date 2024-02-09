@@ -53,13 +53,15 @@ int main(int argc, char *argv[])
     /* TODO: Manage background processes */
 
     /* TODO: prompt ; interactive otherwise it's a file*/
-    if (input == stdin) {
-        sigint_action.sa_handler = sigint_handler;
-        sigaction(SIGINT, &sigint_action, &sigint_old);
+      if (input == stdin) {
+          sigint_action.sa_handler = sigint_handler;
+          sigaction(SIGINT, &sigint_action, &sigint_old);
 
-        ignore_action.sa_handler = SIG_IGN;
-        sigaction(SIGTSTP, &ignore_action, &sigstp_old);
-    }
+          ignore_action.sa_handler = SIG_IGN;
+          sigaction(SIGTSTP, &ignore_action, &sigstp_old);
+
+      }
+
     if (feof(input)) {exit(0);}
     ssize_t line_len = getline(&line, &n, input);
     if (line_len < 0) {exit(0); };
@@ -112,17 +114,17 @@ int main(int argc, char *argv[])
     else {
         pid_t spawnPID = fork();
 
-        if (input == stdin) {
-            sigaction(SIGTSTP, &sigstp_old, NULL);
-            sigaction(SIGINT, &sigint_old, NULL);
-        }
-
         switch (spawnPID) {
             case -1:
                 perror("fork() failed\n");
                 exit(1);
                 break;
             case 0:
+                if (input == stdin) {
+                    sigaction(SIGTSTP, &sigstp_old, NULL);
+                    sigaction(SIGINT, &sigint_old, NULL);
+                }
+
                 fflush(stdout);
                 for (size_t i = 0; i < nwords; ++i) {
                     if (i == nwords - 1 && strcmp(words[i], "&") == 0) {/* set operator to true*/}
@@ -137,7 +139,7 @@ int main(int argc, char *argv[])
                     } else if (strcmp(words[i], ">") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else { /*
+                        } else {
                             int file = open(words[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0777);
                             if (file == -1) {
                                 perror("open()");
@@ -147,13 +149,13 @@ int main(int argc, char *argv[])
                             if (result == -1) {
                                 perror("dup2");
                                 exit(2);
-                            } */
+                            }
                             i = i + 1;
 
                     }} else if (strcmp(words[i], ">>") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else { /*
+                        } else {
                             int file1 = open(words[i + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
                             if (file1 == -1) {
                                 perror("open()");
@@ -164,7 +166,7 @@ int main(int argc, char *argv[])
                                 perror("dup2");
                                 exit(2);
                             }
-                            i = i + 1; */
+                            i = i + 1;
                         }
                     } else {
                         childwords[i] = words[i];
@@ -172,18 +174,28 @@ int main(int argc, char *argv[])
                 }
 
                 if (execvp(childwords[0], childwords) == -1) {
-                    fprintf(stderr, "Child failed to exec."); exit(1);
-                }
-                /*TODO : this actually needs to be sigcont signal, not wifexited I believe */
-                if(WIFEXITED(childStatus)){} else {
-                    fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID); exit(1);
-                }
-                fflush(stdout);
+                    kill(spawnPID, SIGINT);
+
+                    fprintf(stderr, "failed to exex");
+                   }
+
+                exit(childStatus);
+
+                /*TODO : */
+
             default:
                 waitpid(spawnPID, &childStatus, 0);
+                foreground = WEXITSTATUS(childStatus);
+                if (WIFSIGNALED(childStatus)){
+                    foreground = 128 + WTERMSIG(childStatus);
+                }
+                if (WIFSTOPPED(childStatus)){
+                    kill(spawnPID, SIGCONT);
+                    fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID);
+                }
                 break;
         }
-        /* TODO: reset signals, redirection,  return 0;*/
+        /* TODO: reset signals;*/
     }
   }
   return 0;
@@ -313,19 +325,19 @@ expand(char const *word)
         /* char *pid;
         * int get_pid = asprintf(&pid, "%d", getpid());
         * build_str(pid, NULL);
-        * free (pid); */
+        * free (pid);
         /* build_str("test", NULL); */
-        /*
+
         char *pid;
         int get_pid = asprintf(&pid, "%d", getpid());
         build_str(pid, NULL);
-        free (pid); */
+        free (pid);
         }
-    else if (c == '?') { /*
+    else if (c == '?') {
         char *pid;
-        int get_pid = asprintf(&pid, "%d", WEXITSTATUS(childStatus));
+        int get_pid = asprintf(&pid, "%d", foreground);
         build_str(pid, NULL);
-        free(pid); */
+        free(pid);
     }
     else if (c == '{') {
       char const *param = word;
