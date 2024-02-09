@@ -51,21 +51,24 @@ int main(int argc, char *argv[])
     size_t n = 0;
     char exit_str[] = "exit";
     char cd_str[] = "cd";
+    char line_str[] = " ";
     for (;;) {
 prompt:;
         /* TODO: Manage background processes */
-        fprintf(stderr, "it got here1");
-        while ((childPID = waitpid(childPID, &spawnStatus, WNOHANG | WUNTRACED)) > 0) {
-            fprintf(stderr, "test wait");
+
+        while (waitpid(0, &spawnStatus, WNOHANG | WUNTRACED) > 0) {
             if (WIFSTOPPED(spawnStatus)){
-                fprintf(stderr, "test stop");
                 kill(childPID, SIGCONT);
                 fprintf(stderr, "Child process %d stopped. Continuing.\n", childPID);
             }
             if (WIFSIGNALED(spawnStatus)){
-                fprintf(stderr, "background signaled");
+                fprintf(stderr, "Child process %d done. Signaled %d.\n", childPID, WTERMSIG(spawnStatus));
+            }
+            if (WIFEXITED(spawnStatus)){
+                fprintf(stderr, "Child process %d done. Exit status %d.\n", childPID, WEXITSTATUS(spawnStatus));
             }
         }
+
 
         /* TODO: prompt ; interactive otherwise it's a file*/
         if (input == stdin) {
@@ -74,15 +77,19 @@ prompt:;
 
             ignore_action.sa_handler = SIG_IGN;
             sigaction(SIGTSTP, &ignore_action, &sigstp_old);
-            /*if line[0] == '\n' goto promt */
 
         }
 
         ssize_t line_len = getline(&line, &n, input);
-        if (line_len < 0) {exit(0); };
+        if (line_len < 0) { exit(0); }
 
+        if (*line == '\n') {
+            goto prompt;
+            /* TODO segmentation fault with just a space */
+        }
 
         size_t nwords = wordsplit(line);
+
         for (size_t i = 0; i < nwords; ++i) {
             /* fprintf(stderr, "Word %zu: %s\n", i, words[i]); */
             char *exp_word = expand(words[i]);
@@ -222,7 +229,7 @@ prompt:;
                     }
 
                     else {
-                        fprintf(stderr, "it got here");
+                        /* TODO SOMETHING */
                         goto prompt;
                     }
                     break;
@@ -360,17 +367,10 @@ expand(char const *word)
                 char *pid;
                 int get_pid = asprintf(&pid, "%d", bgpid);
                 build_str(pid, NULL);
-                free(pid); /*
-            fprintf(stderr, "%d", bgpid); */
+                free(pid);
             }
         }
         else if (c == '$') {
-            /* char *pid;
-            * int get_pid = asprintf(&pid, "%d", getpid());
-            * build_str(pid, NULL);
-            * free (pid);
-            build_str("test", NULL); */
-
             char *pid;
             int get_pid = asprintf(&pid, "%d", getpid());
             build_str(pid, NULL);
