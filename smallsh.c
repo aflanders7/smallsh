@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
 
           ignore_action.sa_handler = SIG_IGN;
           sigaction(SIGTSTP, &ignore_action, &sigstp_old);
+          /*if line[0] == '\n' goto promt */
 
       }
 
@@ -129,8 +130,7 @@ int main(int argc, char *argv[])
                 fflush(stdout);
                 for (size_t i = 0; i < nwords; ++i) {
                     if (i == nwords - 1 && strcmp(words[i], "&") == 0) {
-                        background = 1;
-                        bgpid = spawnPID;
+                        /* skips adding & */
                     }
                     else if (strcmp(words[i], "<") == 0) {
                         if (i + 1 == nwords) {
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
                     } else if (strcmp(words[i], ">") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else {
+                        } else { /*
                             int file = open(words[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0777);
                             if (file == -1) {
                                 perror("open()");
@@ -154,12 +154,12 @@ int main(int argc, char *argv[])
                                 perror("dup2");
                                 exit(2);
                             }
-                            i = i + 1;
-
-                    }} else if (strcmp(words[i], ">>") == 0) {
+                            i = i + 1; */
+                        }
+                    } else if (strcmp(words[i], ">>") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else {
+                        } else { /*
                             int file1 = open(words[i + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
                             if (file1 == -1) {
                                 perror("open()");
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
                                 perror("dup2");
                                 exit(2);
                             }
-                            i = i + 1;
+                            i = i + 1; */
                         }
                     } else {
                         childwords[i] = words[i];
@@ -186,18 +186,25 @@ int main(int argc, char *argv[])
                 /*TODO : */
 
             default:
+                if (strcmp(words[nwords - 1], "&") == 0) {
+                    /* tested, works */
+                    background = 1;
+                    bgpid = spawnPID;
+                }
                 if (background == 0) {
                     spawnPID = waitpid(spawnPID, &childStatus, 0);
                     foreground = WEXITSTATUS(childStatus);
                 }
-
-                if (WIFSIGNALED(childStatus)){
+                if (WIFSIGNALED(childStatus) && background == 0){
                     foreground = 128 + WTERMSIG(childStatus);
+                }
+                if (WIFSIGNALED(childStatus) && background == 1){
+                    fprintf(stderr, "background signaled");
                 }
                 if (WIFSTOPPED(childStatus)){
                     fprintf(stderr, "test");
-                    kill(getpid(), SIGCONT);
-                    fprintf(stderr, "test");
+                    kill(spawnPID, SIGCONT);
+                    bgpid = spawnPID;
                     fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID);
                 }
                 break;
@@ -329,13 +336,14 @@ expand(char const *word)
   while (c) {
     if (c == '!') {
         if (background == 0){
-            build_str("", NULL);
+            build_str("bg 0", NULL);
         }
-        else {
+        else { /*
             char *pid;
             int get_pid = asprintf(&pid, "%d", bgpid);
             build_str(pid, NULL);
-            free(pid);
+            free(pid); */
+            fprintf(stderr, "%d", bgpid);
         }
     }
     else if (c == '$') {
@@ -343,18 +351,19 @@ expand(char const *word)
         * int get_pid = asprintf(&pid, "%d", getpid());
         * build_str(pid, NULL);
         * free (pid);
-        /* build_str("test", NULL); */
+        build_str("test", NULL); */
 
+/*
         char *pid;
         int get_pid = asprintf(&pid, "%d", getpid());
         build_str(pid, NULL);
-        free (pid);
+        free (pid); */
         }
-    else if (c == '?') {
+    else if (c == '?') { /*
         char *pid;
         int get_pid = asprintf(&pid, "%d", foreground);
         build_str(pid, NULL);
-        free(pid);
+        free(pid); */
     }
     else if (c == '{') {
       char const *param = word;
