@@ -27,10 +27,11 @@ char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
 int foreground = 0;
-char const *background = "";
+int background = 0;
+int bgpid = 0;
+
 char *childwords[MAX_WORDS] = {0};
 int childStatus = 0;
-
 
 int main(int argc, char *argv[])
 {
@@ -127,7 +128,10 @@ int main(int argc, char *argv[])
 
                 fflush(stdout);
                 for (size_t i = 0; i < nwords; ++i) {
-                    if (i == nwords - 1 && strcmp(words[i], "&") == 0) {/* set operator to true*/}
+                    if (i == nwords - 1 && strcmp(words[i], "&") == 0) {
+                        background = 1;
+                        bgpid = spawnPID;
+                    }
                     else if (strcmp(words[i], "<") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
@@ -174,9 +178,7 @@ int main(int argc, char *argv[])
                 }
 
                 if (execvp(childwords[0], childwords) == -1) {
-                    kill(spawnPID, SIGINT);
-
-                    fprintf(stderr, "failed to exex");
+                    fprintf(stderr, "failed to exec");
                    }
 
                 exit(childStatus);
@@ -184,13 +186,18 @@ int main(int argc, char *argv[])
                 /*TODO : */
 
             default:
-                waitpid(spawnPID, &childStatus, 0);
-                foreground = WEXITSTATUS(childStatus);
+                if (background == 0) {
+                    spawnPID = waitpid(spawnPID, &childStatus, 0);
+                    foreground = WEXITSTATUS(childStatus);
+                }
+
                 if (WIFSIGNALED(childStatus)){
                     foreground = 128 + WTERMSIG(childStatus);
                 }
                 if (WIFSTOPPED(childStatus)){
-                    kill(spawnPID, SIGCONT);
+                    fprintf(stderr, "test");
+                    kill(getpid(), SIGCONT);
+                    fprintf(stderr, "test");
                     fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID);
                 }
                 break;
@@ -320,7 +327,17 @@ expand(char const *word)
   build_str(NULL, NULL);
   build_str(pos, start);
   while (c) {
-    if (c == '!') build_str("<BGPID>", NULL);
+    if (c == '!') {
+        if (background == 0){
+            build_str("", NULL);
+        }
+        else {
+            char *pid;
+            int get_pid = asprintf(&pid, "%d", bgpid);
+            build_str(pid, NULL);
+            free(pid);
+        }
+    }
     else if (c == '$') {
         /* char *pid;
         * int get_pid = asprintf(&pid, "%d", getpid());
