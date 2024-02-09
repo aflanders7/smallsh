@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
                     } else if (strcmp(words[i], ">") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else { /*
+                        } else {
                             int file = open(words[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0777);
                             if (file == -1) {
                                 perror("open()");
@@ -154,12 +154,12 @@ int main(int argc, char *argv[])
                                 perror("dup2");
                                 exit(2);
                             }
-                            i = i + 1; */
+                            i = i + 1;
                         }
                     } else if (strcmp(words[i], ">>") == 0) {
                         if (i + 1 == nwords) {
                             fprintf(stderr, "No file specified.");
-                        } else { /*
+                        } else {
                             int file1 = open(words[i + 1], O_WRONLY | O_CREAT | O_APPEND, 0777);
                             if (file1 == -1) {
                                 perror("open()");
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
                                 perror("dup2");
                                 exit(2);
                             }
-                            i = i + 1; */
+                            i = i + 1;
                         }
                     } else {
                         childwords[i] = words[i];
@@ -191,21 +191,29 @@ int main(int argc, char *argv[])
                     background = 1;
                     bgpid = spawnPID;
                 }
+                else {
+                    background = 0;
+                }
                 if (background == 0) {
-                    spawnPID = waitpid(spawnPID, &childStatus, 0);
-                    foreground = WEXITSTATUS(childStatus);
+                    spawnPID = waitpid(spawnPID, &childStatus, WUNTRACED);
+                    if (WIFSTOPPED(childStatus)){
+                        kill(spawnPID, SIGCONT);
+                        fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID);
+                        bgpid = spawnPID;
+                    }
+                    else if (WIFSIGNALED(childStatus) && background == 0){
+                        foreground = 128 + WTERMSIG(childStatus);
+                    }
+                    else {foreground = WEXITSTATUS(childStatus);}
                 }
-                if (WIFSIGNALED(childStatus) && background == 0){
-                    foreground = 128 + WTERMSIG(childStatus);
+
+                else {
+                    bgpid = spawnPID;
+                    spawnPID = waitpid(spawnPID, &childStatus, WNOHANG | WUNTRACED);
                 }
+
                 if (WIFSIGNALED(childStatus) && background == 1){
                     fprintf(stderr, "background signaled");
-                }
-                if (WIFSTOPPED(childStatus)){
-                    fprintf(stderr, "test");
-                    kill(spawnPID, SIGCONT);
-                    bgpid = spawnPID;
-                    fprintf(stderr, "Child process %d stopped. Continuing.\n", spawnPID);
                 }
                 break;
         }
@@ -335,15 +343,15 @@ expand(char const *word)
   build_str(pos, start);
   while (c) {
     if (c == '!') {
-        if (background == 0){
-            build_str("bg 0", NULL);
+        if (background == 0 && bgpid == 0){
+            build_str("", NULL);
         }
-        else { /*
+        else {
             char *pid;
             int get_pid = asprintf(&pid, "%d", bgpid);
             build_str(pid, NULL);
-            free(pid); */
-            fprintf(stderr, "%d", bgpid);
+            free(pid); /*
+            fprintf(stderr, "%d", bgpid); */
         }
     }
     else if (c == '$') {
@@ -353,17 +361,16 @@ expand(char const *word)
         * free (pid);
         build_str("test", NULL); */
 
-/*
         char *pid;
         int get_pid = asprintf(&pid, "%d", getpid());
         build_str(pid, NULL);
-        free (pid); */
+        free (pid);
         }
-    else if (c == '?') { /*
+    else if (c == '?') {
         char *pid;
         int get_pid = asprintf(&pid, "%d", foreground);
         build_str(pid, NULL);
-        free(pid); */
+        free(pid);
     }
     else if (c == '{') {
       char const *param = word;
