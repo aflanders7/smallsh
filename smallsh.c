@@ -385,9 +385,11 @@ expand(char const *word)
         else if (c == '{') {
             char const *param = word;
             char *parameter;
+            parameter = (char *) malloc(MAX_WORDS);
             strncpy(parameter, start+2, strlen(param)-3);
             if (getenv(parameter) == NULL) {build_str("", NULL);}
             else {build_str(getenv(parameter), NULL);}
+            free(parameter);
         }
         pos = end;
         c = param_scan(pos, &start, &end);
