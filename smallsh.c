@@ -23,6 +23,7 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 struct sigaction sigint_action = {0}, ignore_action = {0}, sigint_old = {0}, sigstp_old = {0};
 void sigint_handler(int sig) {}
 
+
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
@@ -67,6 +68,7 @@ prompt:;
             if (WIFEXITED(spawnStatus)){
                 fprintf(stderr, "Child process %d done. Exit status %d.\n", childPID, WEXITSTATUS(spawnStatus));
             }
+            if (WIFCONTINUED(spawnStatus)) {}
         }
 
 
@@ -77,6 +79,8 @@ prompt:;
 
             ignore_action.sa_handler = SIG_IGN;
             sigaction(SIGTSTP, &ignore_action, &sigstp_old);
+
+            fprintf(stderr, "%s", getenv("PS1"));
 
         }
 
@@ -224,6 +228,7 @@ prompt:;
                         }
                         else if (WIFSIGNALED(childStatus) && background == 0){
                             foreground = 128 + WTERMSIG(childStatus);
+                            goto prompt;
                         }
                         else {foreground = WEXITSTATUS(childStatus);}
                     }
