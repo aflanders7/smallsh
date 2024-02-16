@@ -85,7 +85,18 @@ prompt:;
         }
 
         ssize_t line_len = getline(&line, &n, input);
-        if (line_len < 0) { exit(0); }
+        /* signal(SIGINT, SIG_IGN); */
+        if (input == stdin) {
+            ignore_action.sa_handler = SIG_IGN;
+            sigaction(SIGINT, &ignore_action, NULL); }
+
+        if (errno == EINTR && input == stdin)  {
+            fprintf(stderr, "\n");
+            clearerr(stdin);
+            errno = 0;
+            goto prompt;
+        }
+        else if (line_len < 0) { exit(0); }
 
         if (*line == '\n') {
             goto prompt;
@@ -149,6 +160,7 @@ prompt:;
                     if (input == stdin) {
                         sigaction(SIGTSTP, &sigstp_old, NULL);
                         sigaction(SIGINT, &sigint_old, NULL);
+
                     }
 
                     fflush(stdout);
