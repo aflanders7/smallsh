@@ -31,6 +31,7 @@ int foreground = 0;
 int background = 0;
 int bgpid = 0;
 pid_t childPID;
+int expansion = 0;
 
 char *childwords[MAX_WORDS] = {0};
 int childStatus = 0;
@@ -85,7 +86,7 @@ prompt:;
         }
 
         ssize_t line_len = getline(&line, &n, input);
-        /* signal(SIGINT, SIG_IGN); */
+
         if (input == stdin) {
             ignore_action.sa_handler = SIG_IGN;
             sigaction(SIGINT, &ignore_action, NULL); }
@@ -403,9 +404,15 @@ expand(char const *word)
             char const *param = word;
             char *parameter;
             parameter = (char *) malloc(MAX_WORDS);
-            strncpy(parameter, start+2, strlen(param)-3);
-            if (getenv(parameter) == NULL) {build_str("", NULL);}
-            else {build_str(getenv(parameter), NULL);}
+            size_t n = end ? end - start : strlen(start);
+
+            strncpy(parameter, start + 2, n-3);
+            if (getenv(parameter) == NULL) {
+                build_str("", NULL);
+            }
+            else {
+                build_str(getenv(parameter), NULL);
+            }
             free(parameter);
         }
         pos = end;
