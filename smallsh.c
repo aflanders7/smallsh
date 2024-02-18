@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     char line_str[] = " ";
     for (;;) {
 prompt:;
-        /* TODO: Manage background processes */
+        /* Manage background processes */
 
         while (waitpid(0, &spawnStatus, WNOHANG | WUNTRACED) > 0) {
             if (WIFSTOPPED(spawnStatus)){
@@ -73,7 +73,7 @@ prompt:;
         }
 
 
-        /* TODO: prompt ; interactive otherwise it's a file*/
+        /* prompt ; interactive otherwise it's a file*/
         if (input == stdin) {
             sigint_action.sa_handler = sigint_handler;
             sigaction(SIGINT, &sigint_action, &sigint_old);
@@ -101,24 +101,21 @@ prompt:;
 
         if (*line == '\n') {
             goto prompt;
-            /* TODO segmentation fault with just a space */
+            /* segmentation fault with just a space */
         }
 
         size_t nwords = wordsplit(line);
 
         for (size_t i = 0; i < nwords; ++i) {
-            /* fprintf(stderr, "Word %zu: %s\n", i, words[i]); */
             char *exp_word = expand(words[i]);
             free(words[i]);
             words[i] = exp_word; /* This is needed to print to stdout */
-            /* fprintf(stdout, "%s", words[i]); */
         }
 
         if (strcmp(words[0], exit_str) == 0) {
             if (nwords > 2) {
                 fprintf(stderr, "Too many arguments given.");
             }
-            /* TODO: add in foreground exit status */
             if (nwords == 1) {exit(childStatus);}
             char *endptr;
             long int digit = strtol(words[1], &endptr, 10);
@@ -136,17 +133,11 @@ prompt:;
                 fprintf(stderr, "Too many arguments given.");
             }
             if (nwords == 1) {chdir(getenv("HOME"));
-                /* char buffer[FILENAME_MAX];
-                * getcwd(buffer, FILENAME_MAX );
-                * printf(buffer); */
             }
             else {
                 if (chdir(words[1]) != 0) {
                     fprintf(stderr, "Changing directory failed.");
                 }
-                /* char buffer[FILENAME_MAX];
-                * getcwd(buffer, FILENAME_MAX );
-                * printf(buffer); */
             }
         }
         else {
@@ -220,7 +211,6 @@ prompt:;
 
                     exit(childStatus);
 
-                    /*TODO : */
 
                 default:
                     if (strcmp(words[nwords - 1], "&") == 0) {
@@ -247,12 +237,10 @@ prompt:;
                     }
 
                     else {
-                        /* TODO SOMETHING */
                         goto prompt;
                     }
                     break;
             }
-            /* TODO: reset signals;*/
         }
     }
     return 0;
