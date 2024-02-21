@@ -93,16 +93,16 @@ void *lineSeparator(void *args){
     size_t in_current_idx = 0;
     size_t in_max_idx = 0;
     size_t out_current_idx = 0;
+
     for (;;) {
         while (in_current_idx < in_max_idx) {
             // Read data from shared buffer
             char c = outbuf1[in_current_idx++];
 
             // process data...
-            c = c + 1;
-
             // write data to shared buffer
-            outbuf2[out_current_idx++] = c;
+            outbuf2[out_current_idx++] = (c == '\n') ? ' ' :
+                                         c;
 
             // Attempt to read the shared index, but don't block
             // if the mutex is currently locked.
@@ -144,13 +144,14 @@ void *plusSign(void *args){
     for (;;) {
         while (in_current_idx < in_max_idx) {
             // Read data from shared buffer
-            char c = outbuf2[in_current_idx++];
+            char c = outbuf2[in_current_idx];
+            char d = outbuf2[in_current_idx+1];
+            in_current_idx++;
 
             // process data...
-            c = c + 1;
-
             // write data to shared buffer
-            outbuf3[out_current_idx++] = c;
+            outbuf2[out_current_idx++] = (c == '+' && d == '+') ? in_current_idx+=1, '^' :
+                                         c;
 
             // Attempt to read the shared index, but don't block
             // if the mutex is currently locked.
@@ -195,11 +196,10 @@ void *Output(void *args){
             putchar('\n');
             fflush(stdout);
             pthread_mutex_lock(&mutex3);
-            out_shared3 = 0;
-            in_current_idx = 0;
-            pthread_cond_signal(&out_cond3);
+            out_shared3 = 0;    // reset the index
+            in_max_idx = out_shared3;
+            pthread_cond_signal(&out_cond3);    // can you have signals going both ways????
             pthread_mutex_unlock(&mutex3);
-
         }
 
         // Waiting for the upstream (input) to put the data in
