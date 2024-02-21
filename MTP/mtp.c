@@ -4,23 +4,48 @@
 #include <err.h>
 #include <errno.h>
 
+char outbuf1[80];
+char outbuf2[80];
+char outbuf3[80];
+
 void *getInput(void *args){
-    printf("Hello World!\n");
+    char *line = NULL;
+    size_t n = 0;
+    size_t op = 0;
+
+    for (;;) {
+        ssize_t len = getline(&line, &n, stdin);
+        if (len == -1) {
+            if (feof(stdin)) break; // EOF is not defined by the spec. I treat it as "STOP\n"
+            else err(1, "stdin");
+        }
+        if (strcmp(line, "STOP\n") == 0) break; // Normal exit
+        for (size_t n = 0; n < len; ++n) {
+            outbuf1[op] = line[n];
+            if (++op == 80) {
+                fwrite(outbuf1, 1, 80, stdout);
+                putchar('\n');
+                fflush(stdout);
+                op = 0;
+            }
+        }
+    }
+    free(line);
     return NULL;
 }
 
 void *lineSeparator(void *args){
-    printf("Hello World!\n");
+
     return NULL;
 }
 
 void *plusSign(void *args){
-    printf("Hello World!\n");
+
     return NULL;
 }
 
 void *Output(void *args){
-    printf("Hello World!\n");
+
     return NULL;
 }
 
