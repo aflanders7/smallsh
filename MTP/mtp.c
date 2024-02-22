@@ -6,45 +6,34 @@
 #include <pthread.h>
 #include <unistd.h>
 
+
 // buffer for input and line separator
 char outbuf1[80];
-
 // index input
 int out_shared1 = 0; // using out shared index to keep track of if the buffer is full
-
 // mutex
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-
 // conditionals
 pthread_cond_t out_cond1 = PTHREAD_COND_INITIALIZER;
 
+
 // buffer for line separator and plus sign
 char outbuf2[80];
-
 // index input
-int in_shared2 = 0; // used with input
 int out_shared2 = 0;
-
 // mutex
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
-
 // conditionals
-pthread_cond_t in_cond2 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t out_cond2 = PTHREAD_COND_INITIALIZER;
 
 
 // buffer for plus sign and output
 char outbuf3[80];
-
 // index input
-int in_shared3 = 0; // used with input
 int out_shared3 = 0;
-
 // mutex
 pthread_mutex_t mutex3 = PTHREAD_MUTEX_INITIALIZER;
-
 // conditionals
-pthread_cond_t in_cond3 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t out_cond3 = PTHREAD_COND_INITIALIZER;
 
 
@@ -55,37 +44,44 @@ void *getInput(void *args){
     size_t out_current_idx = 0;
 
     for (;;) {
-        ssize_t len = getline(&line, &in_current_idx, stdin); // read data
-        if (len == -1) {
-            if (feof(stdin)) break; // EOF treated as "STOP\n"
-            else err(1, "stdin");
-        }
-        if (strcmp(line, "STOP\n") == 0) break; // TODO Normal exit; do I need to return to exit?
-        char c = line[in_current_idx++]; // increments after it's used
-        // c = c + 1;  idk about this for input
+        while (out_current_idx < 80) {
+            ssize_t len = getline(&line, &in_current_idx, stdin); // read data
+            if (len == -1) {
+                if (feof(stdin)) return NULL; // EOF treated as "STOP\n"
+                else err(1, "stdin");
+            }
+            if (strcmp(line, "STOP\n") == 0) return NULL; // TODO Normal exit; do I need to return to exit?
 
-        // write to the shared buffer
-        outbuf1[out_current_idx] = c;
+            char c = line[in_current_idx++]; // increments after it's used
 
-        // no in shared index, so skip for this thread
-        // write to shared output index
-        if (pthread_mutex_trylock(&mutex1) == 0) {
-            out_shared1 = out_current_idx;
-            pthread_mutex_unlock(&mutex1);
-            pthread_cond_signal(&out_cond1);
+            // write to the shared buffer; NOTE: out current index is local
+            outbuf1[out_current_idx++] = c;
+
+            // no in shared index, so skip for this thread
+            // write to shared output index and signal that more is available
+            // signals that more has been written
+            if (pthread_mutex_trylock(&mutex1) == 0) {
+                out_shared1 = out_current_idx;
+                pthread_mutex_unlock(&mutex1);
+                pthread_cond_signal(&out_cond1);
+            }
         }
 
         // check if buffer is full;  this could be an issue and block the mutex! might need to try lock
-        pthread_mutex_lock(&mutex1);
-        while (++out_shared1 == 80) {
-            pthread_mutex_unlock(&mutex1);
-            sleep(1);
-            pthread_mutex_lock(&mutex1);
-        }
+        // TODO consider making this an if loop so that mutex will not be blocked
 
+        if (out_current_idx == 80) {
+            pthread_mutex_lock(&mutex1);
+            out_shared1 = out_current_idx;
+            while (out_shared1 == 80) {
+                pthread_mutex_unlock(&mutex1);
+                sleep(1);
+                pthread_mutex_lock(&mutex1);
+            }
+            pthread_mutex_unlock(&mutex1);
+        }
     }
     free(line);
-    return NULL;
 }
 
 void *lineSeparator(void *args){
@@ -95,6 +91,7 @@ void *lineSeparator(void *args){
     size_t out_current_idx = 0;
 
     for (;;) {
+        // in_max_idx max val is 80, if in_current = 80 it will stop
         while (in_current_idx < in_max_idx) {
             // Read data from shared buffer
             char c = outbuf1[in_current_idx++];
@@ -117,6 +114,7 @@ void *lineSeparator(void *args){
                 pthread_mutex_unlock(&mutex2);
                 pthread_cond_signal(&out_cond2);
             }
+
         }
         // We cannot continue without updating in_max_idx
         // First update shared out index for downstream thread
@@ -128,6 +126,12 @@ void *lineSeparator(void *args){
         // Now wait for upstream thread to put data in for us
         pthread_mutex_lock(&mutex1);
         in_max_idx = out_shared1;
+        // buffer is full, overwrite the index
+        if (in_current_idx == 80) {
+            out_shared1 = 0;
+            in_current_idx = 0;
+            in_max_idx = 0;
+        }
         while (! (in_current_idx < in_max_idx)) {
             pthread_cond_wait(&out_cond1, &mutex1);
             in_max_idx = out_shared1;
