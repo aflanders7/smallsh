@@ -55,7 +55,7 @@ void *getInput(void *args){
             char c = line[in_current_idx++]; // increments after it's used
 
             // write to the shared buffer; NOTE: out current index is local
-            outbuf1[out_current_idx++] = c;
+            outbuf1[out_current_idx] = c;
 
             // no in shared index, so skip for this thread
             // write to shared output index and signal that more is available
@@ -65,6 +65,7 @@ void *getInput(void *args){
                 pthread_mutex_unlock(&mutex1);
                 pthread_cond_signal(&out_cond1);
             }
+            out_current_idx++;
         }
 
         // check if buffer is full;  this could be an issue and block the mutex! might need to try lock
@@ -98,7 +99,7 @@ void *lineSeparator(void *args){
 
             // process data...
             // write data to shared buffer
-            outbuf2[out_current_idx++] = (c == '\n') ? ' ' :
+            outbuf2[out_current_idx] = (c == '\n') ? ' ' :
                                          c;
 
             // Attempt to read the shared index, but don't block
@@ -115,12 +116,26 @@ void *lineSeparator(void *args){
                 pthread_cond_signal(&out_cond2);
             }
 
+            out_current_idx++;
+            if (out_current_idx == 80) break;
         }
         // We cannot continue without updating in_max_idx
         // First update shared out index for downstream thread
+
         pthread_mutex_lock(&mutex2);
         out_shared2 = out_current_idx;
-        pthread_cond_signal(&out_cond2);
+        // check for buffer to be cleared; do I need this or can you re-write index to loop without clearing
+        if (out_current_idx == 80){
+            while (out_shared2 == 80) {
+                pthread_mutex_unlock(&mutex2);
+                sleep(1);
+                pthread_mutex_lock(&mutex2);
+            }
+        }
+        else {
+            out_shared2 = out_current_idx;
+            pthread_cond_signal(&out_cond2);
+        }
         pthread_mutex_unlock(&mutex2);
 
         // Now wait for upstream thread to put data in for us
@@ -154,7 +169,7 @@ void *plusSign(void *args){
 
             // process data...
             // write data to shared buffer
-            outbuf2[out_current_idx++] = (c == '+' && d == '+') ? in_current_idx+=1, '^' :
+            outbuf3[out_current_idx] = (c == '+' && d == '+') ? in_current_idx+=1, '^' :
                                          c;
 
             // Attempt to read the shared index, but don't block
@@ -170,20 +185,40 @@ void *plusSign(void *args){
                 pthread_mutex_unlock(&mutex3);
                 pthread_cond_signal(&out_cond3);
             }
+
+            out_current_idx++;
+            if (out_current_idx == 80) break;
+
         }
-        // We cannot continue without updating in_max_idx
-        // First update shared out index for downstream thread
+
         pthread_mutex_lock(&mutex3);
         out_shared3 = out_current_idx;
-        pthread_cond_signal(&out_cond3);
+        // check for buffer to be cleared; do I need this or can you re-write index to loop without clearing
+        if (out_current_idx == 80){
+            while (out_shared3 == 80) {
+                pthread_mutex_unlock(&mutex3);
+                sleep(1);
+                pthread_mutex_lock(&mutex3);
+            }
+        }
+        else {
+            out_shared3 = out_current_idx;
+            pthread_cond_signal(&out_cond3);
+        }
         pthread_mutex_unlock(&mutex3);
 
         // Now wait for upstream thread to put data in for us
         pthread_mutex_lock(&mutex2);
         in_max_idx = out_shared2;
+        // buffer is full, overwrite the index
+        if (in_current_idx == 80) {
+            out_shared2 = 0;
+            in_current_idx = 0;
+            in_max_idx = 0;
+        }
         while (! (in_current_idx < in_max_idx)) {
             pthread_cond_wait(&out_cond2, &mutex2);
-            in_max_idx = out_shared2;
+            in_max_idx = out_shared1;
         }
         pthread_mutex_unlock(&mutex2);
     }
@@ -202,7 +237,6 @@ void *Output(void *args){
             pthread_mutex_lock(&mutex3);
             out_shared3 = 0;    // reset the index
             in_max_idx = out_shared3;
-            pthread_cond_signal(&out_cond3);    // can you have signals going both ways????
             pthread_mutex_unlock(&mutex3);
         }
 
