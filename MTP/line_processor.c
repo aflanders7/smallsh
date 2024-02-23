@@ -9,9 +9,9 @@
 #define SIZE 1000
 
 // buffer for input and line separator
-char outbuf1[SIZE];
+char outbuf1[1000];
 // index input
-int out_shared1 = 0; // using out shared index to keep track of if the buffer is full
+size_t out_shared1 = 0; // using out shared index to keep track of if the buffer is full
 // mutex
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 // conditionals
@@ -41,8 +41,11 @@ pthread_cond_t out_cond3 = PTHREAD_COND_INITIALIZER;
 void *getInput(void *args){
     char *line = NULL;
     size_t n = 0;
-    char outbuf[80];
+
+    size_t in_current_idx = 0;
+    size_t out_current_idx = 0;
     size_t op = 0;
+
     for (;;) {
         ssize_t len = getline(&line, &n, stdin);
         if (len == -1) {
@@ -51,21 +54,67 @@ void *getInput(void *args){
         }
         if (strcmp(line, "STOP\n") == 0) break; // Normal exit
         for (size_t n = 0; n < len; ++n) {
-            outbuf[op] = (line[n] == '+' && line[n+1] == '+') ? n+=1, '^' :
+            outbuf1[op] = (line[n] == '+' && line[n+1] == '+') ? n+=1, '^' :
                          (line[n] == '\n')                    ? ' ' :
                          line[n];
+
+            /*
             if (++op == 80) {
-                fwrite(outbuf, 1, 80, stdout);
+                fwrite(outbuf1, 1, 80, stdout);
                 putchar('\n');
                 fflush(stdout);
                 op = 0;
+            }  */
+
+            /*
+            in_current_idx = (++op) % 80;
+            // fprintf(stderr, "%zu", in_current_idx);
+            fprintf(stderr, "%zu", op);
+            if (in_current_idx == 0) {
+                fwrite(outbuf1, 1, 80, stdout);
+                putchar('\n');
+                fflush(stdout);
+                in_current_idx = 0;
+            } */
+            op++;
+
+            if (pthread_mutex_trylock(&mutex1) == 0) {
+                out_shared1 = op;
+                pthread_mutex_unlock(&mutex1);
+                pthread_cond_signal(&out_cond1);
             }
+
         }
     }
+
     free(line);
 }
 
 void *lineSeparator(void *args){
+
+    size_t in_current_idx = 0;
+    size_t in_max_idx = 0;
+    size_t out_current_idx = 0;
+    int to_write = 0;
+    int count = 0;
+
+    for (;;) {
+        sleep(1);
+        if (pthread_mutex_trylock(&mutex1) == 0) {
+            in_max_idx = out_shared1;
+            pthread_mutex_unlock(&mutex1);
+        }
+
+        to_write = (in_max_idx / 80) - count;
+        count += to_write;
+        fprintf(stderr, "%d", to_write);
+
+        for (size_t n = 0; n < to_write; ++n) {
+            fwrite(outbuf1, 1, 80, stdout);
+            putchar('\n');
+            fflush(stdout);
+        }
+    }
     return NULL;
 }
 
