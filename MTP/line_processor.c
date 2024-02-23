@@ -42,17 +42,55 @@ pthread_cond_t buf3_full = PTHREAD_COND_INITIALIZER;
 void *getInput(void *args){
     char *line = NULL;
     size_t n = 0;
+    int stop = 0;
+    size_t count = 0; // the line count
+    size_t output_idx = 0;
 
-    for (;;) {}
+    while (stop == 0) {
+        ssize_t len = getline(&line, &n, stdin);
+        if (len == -1) {
+            if (feof(stdin)) { stop = 1; } // EOF is not defined by the spec. I treat it as "STOP\n"
+            else err(1, "stdin");
+        }
+        if (strcmp(line, "STOP\n") == 0) { stop = 1; } // Normal exit
+
+        for (size_t n = 0; n < len; ++n) {
+            buffer1[count][n] = line[n]; // copy over to shared 2d unbounded buffer
+        }
+
+        count += 1;
+
+        if (pthread_mutex_trylock(&mutex1) == 0 || stop == 1) { // need to update if stopping
+            out_idx1 = count;
+            pthread_mutex_unlock(&mutex1);
+            pthread_cond_signal(&buf1_full);
+        }
+    }
 
     free(line);
     return NULL;
 }
 
 void *lineSeparator(void *args){
+    int stop = 0;
+    size_t count = 0; // the line count
 
+    while (stop == 0) {
+        pthread_mutex_lock(&mutex1);
+        while (! (count < out_idx1)) { // no new info in buffer
+            pthread_cond_wait(&buf1_full, &mutex1);
+        }
+        pthread_mutex_unlock(&mutex1);
 
-    for (;;) {}
+        if (strcmp(buffer1[count], "STOP\n") == 0) { stop = 1; } // Normal exit
+
+        size_t len = strlen(buffer1[count]);
+        for (size_t n = 0; n < len; ++n) {
+            buffer2[count][n] = (buffer1[count][n] == '\n') ? ' ' :
+                                buffer1[count][n];
+        }
+        count += 1;
+    }
 
     return NULL;
 }
