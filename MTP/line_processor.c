@@ -110,7 +110,6 @@ void *lineSeparator(void *args){
 
     }
 
-    pthread_cond_signal(&buf2_full);
     return NULL;
 }
 
@@ -128,7 +127,6 @@ void *plusSign(void *args){
 
         if (strcmp(buffer2[count], "STOP\n") == 0) {
             stop = 1;
-            fprintf(stderr, "stopping");
         } // Normal exit
 
         size_t len = strlen(buffer2[count]);
@@ -139,18 +137,51 @@ void *plusSign(void *args){
         output_idx = 0;
         count += 1;
 
+        if (pthread_mutex_trylock(&mutex3) == 0 || stop == 1) { // need to update if stopping
+            out_idx3 = count;
+            pthread_mutex_unlock(&mutex3);
+            pthread_cond_signal(&buf3_full);
+        }
+
     }
-    // fprintf(stderr, "got here");
-    fwrite(buffer3[0], 1, 80, stdout);
-    fwrite(buffer3[1], 1, 80, stdout);
-    fwrite(buffer3[2], 1, 80, stdout);
-    putchar('\n');
-    fflush(stdout);
 
     return NULL;
 }
 
 void *output(void *args){
+    int stop = 0;
+    size_t count = 0; // the line count
+    size_t output_idx = 0; // count in intervals of 80
+    char buffer4[80]; // buffer to hold the output
+
+    while (stop == 0) {
+        pthread_mutex_lock(&mutex3);
+        while (! (count < out_idx3)) { // no new info in buffer
+            pthread_cond_wait(&buf3_full, &mutex3);
+        }
+        pthread_mutex_unlock(&mutex3);
+
+        if (strcmp(buffer2[count], "STOP\n") == 0) {
+            stop = 1;
+
+        } // Normal exit
+
+        size_t len = strlen(buffer3[count]);
+        for (size_t n = 0; n < len; ++n) {
+            buffer4[output_idx] = buffer3[count][n];
+            if (++output_idx == 80) {
+                fwrite(buffer4, 1, 80, stdout);
+                putchar('\n');
+                fflush(stdout);
+                output_idx = 0;
+                memset(buffer4, 0, sizeof buffer4);
+            }
+        }
+
+        count += 1;
+
+    }
+
     return NULL;
 }
 
@@ -166,5 +197,6 @@ int main(void) {
     pthread_join(ps, NULL);
     // fprintf(stderr, "ps finished");
     pthread_join(op, NULL);
+    //fprintf(stderr, "op finished");
     return 0;
 }
