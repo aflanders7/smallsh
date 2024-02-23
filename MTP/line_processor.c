@@ -87,12 +87,20 @@ void *lineSeparator(void *args){
         } // Normal exit
 
         size_t len = strlen(buffer1[count]);
-        for (size_t n = 0; n < len; ++n) {
-            buffer2[count][n] = (buffer1[count][n] == '\n') ? ' ' :
-                                buffer1[count][n];
+
+        if (stop == 1) { // write the line space with stop to distinguish it
+            for (size_t n = 0; n < len; ++n) {
+                buffer2[count][n] = buffer1[count][n];
+            }
         }
+        else {
+            for (size_t n = 0; n < len; ++n) {
+                buffer2[count][n] = (buffer1[count][n] == '\n') ? ' ' :
+                                    buffer1[count][n];
+            }
+        }
+
         count += 1;
-        fprintf(stderr, "%lu", count);
 
         if (pthread_mutex_trylock(&mutex2) == 0 || stop == 1) { // need to update if stopping
             out_idx2 = count;
@@ -116,9 +124,7 @@ void *plusSign(void *args){
         while (! (count < out_idx2)) { // no new info in buffer
             pthread_cond_wait(&buf2_full, &mutex2);
         }
-        //fprintf(stderr, "%lu", out_idx2);
         pthread_mutex_unlock(&mutex2);
-        // fprintf(stderr, "%s", buffer2[count]);
 
         if (strcmp(buffer2[count], "STOP\n") == 0) {
             stop = 1;
@@ -132,12 +138,12 @@ void *plusSign(void *args){
         }
         output_idx = 0;
         count += 1;
-        fwrite(buffer3, 1, 80, stdout);
-        putchar('\n');
-        fflush(stdout);
 
     }
-    fwrite(buffer3, 1, 80, stdout);
+    // fprintf(stderr, "got here");
+    fwrite(buffer3[0], 1, 80, stdout);
+    fwrite(buffer3[1], 1, 80, stdout);
+    fwrite(buffer3[2], 1, 80, stdout);
     putchar('\n');
     fflush(stdout);
 
@@ -156,7 +162,9 @@ int main(void) {
     pthread_create(&op, NULL, output, NULL);
     pthread_join(in, NULL);
     pthread_join(ls, NULL);
+    // fprintf(stderr, "ls finished");
     pthread_join(ps, NULL);
+    // fprintf(stderr, "ps finished");
     pthread_join(op, NULL);
     return 0;
 }
