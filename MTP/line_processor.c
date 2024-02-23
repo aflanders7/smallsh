@@ -97,23 +97,27 @@ void *lineSeparator(void *args){
     size_t out_current_idx = 0;
     int to_write = 0;
     int count = 0;
+    char outbuf4[80];
 
     for (;;) {
-        sleep(1);
         if (pthread_mutex_trylock(&mutex1) == 0) {
             in_max_idx = out_shared1;
             pthread_mutex_unlock(&mutex1);
         }
 
         to_write = (in_max_idx / 80) - count;
-        count += to_write;
-        fprintf(stderr, "%d", to_write);
 
-        for (size_t n = 0; n < to_write; ++n) {
-            fwrite(outbuf1, 1, 80, stdout);
+        // fprintf(stderr, "%d", to_write);
+
+        for (size_t x = 0; x < to_write; ++x) {
+            for (size_t n = 0; n < 80; ++n) {
+                outbuf4[n] = outbuf1[n + (80 * (x+count))];
+            }
+            fwrite(outbuf4, 1, 80, stdout);
             putchar('\n');
             fflush(stdout);
         }
+        count += to_write;
     }
     return NULL;
 }
