@@ -22,7 +22,7 @@ pthread_cond_t buf1_full = PTHREAD_COND_INITIALIZER;
 // buffer for line separator and plus sign
 char buffer2[LINE][SIZE];
 // index input
-int out_idx2 = 0;
+size_t out_idx2 = 0;
 // mutex
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 // conditionals
@@ -32,7 +32,7 @@ pthread_cond_t buf2_full = PTHREAD_COND_INITIALIZER;
 // buffer for plus sign and output
 char buffer3[LINE][SIZE];
 // index input
-int out_idx3 = 0;
+size_t out_idx3 = 0;
 // mutex
 pthread_mutex_t mutex3 = PTHREAD_MUTEX_INITIALIZER;
 // conditionals
@@ -82,7 +82,9 @@ void *lineSeparator(void *args){
         }
         pthread_mutex_unlock(&mutex1);
 
-        if (strcmp(buffer1[count], "STOP\n") == 0) { stop = 1; } // Normal exit
+        if (strcmp(buffer1[count], "STOP\n") == 0) {
+            stop = 1;
+        } // Normal exit
 
         size_t len = strlen(buffer1[count]);
         for (size_t n = 0; n < len; ++n) {
@@ -90,12 +92,55 @@ void *lineSeparator(void *args){
                                 buffer1[count][n];
         }
         count += 1;
+        fprintf(stderr, "%lu", count);
+
+        if (pthread_mutex_trylock(&mutex2) == 0 || stop == 1) { // need to update if stopping
+            out_idx2 = count;
+            pthread_mutex_unlock(&mutex2);
+            pthread_cond_signal(&buf2_full);
+        }
+
     }
 
+    pthread_cond_signal(&buf2_full);
     return NULL;
 }
 
 void *plusSign(void *args){
+    int stop = 0;
+    size_t count = 0; // the line count
+    size_t output_idx = 0;
+
+    while (stop == 0) {
+        pthread_mutex_lock(&mutex2);
+        while (! (count < out_idx2)) { // no new info in buffer
+            pthread_cond_wait(&buf2_full, &mutex2);
+        }
+        //fprintf(stderr, "%lu", out_idx2);
+        pthread_mutex_unlock(&mutex2);
+        // fprintf(stderr, "%s", buffer2[count]);
+
+        if (strcmp(buffer2[count], "STOP\n") == 0) {
+            stop = 1;
+            fprintf(stderr, "stopping");
+        } // Normal exit
+
+        size_t len = strlen(buffer2[count]);
+        for (size_t n = 0; n < len; ++n, ++output_idx) {
+            buffer3[count][output_idx] = (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') ? n+=1, '^' :
+                                buffer2[count][n];
+        }
+        output_idx = 0;
+        count += 1;
+        fwrite(buffer3, 1, 80, stdout);
+        putchar('\n');
+        fflush(stdout);
+
+    }
+    fwrite(buffer3, 1, 80, stdout);
+    putchar('\n');
+    fflush(stdout);
+
     return NULL;
 }
 
@@ -113,4 +158,5 @@ int main(void) {
     pthread_join(ls, NULL);
     pthread_join(ps, NULL);
     pthread_join(op, NULL);
+    return 0;
 }
