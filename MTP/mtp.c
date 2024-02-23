@@ -251,6 +251,7 @@ void *Output(void *args){
     }
 }
 
+
 int main(void) {
     pthread_t in, ls, ps, op;
     pthread_create(&in, NULL, getInput, NULL);
