@@ -9,6 +9,9 @@
 #define SIZE 1000
 #define LINE 50
 
+// poison pull
+char *str = "ğğ";
+
 // buffer for input and line separator
 char buffer1[LINE][SIZE];
 // index input
@@ -52,10 +55,15 @@ void *getInput(void *args){
             if (feof(stdin)) { stop = 1; } // EOF is not defined by the spec. I treat it as "STOP\n"
             else err(1, "stdin");
         }
-        if (strcmp(line, "STOP\n") == 0) { stop = 1; } // Normal exit
+        if (strcmp(line, "STOP\n") == 0) {
+            stop = 1;
+            strcpy(buffer1[count], str);
+        } // Normal exit
 
-        for (size_t n = 0; n < len; ++n) {
-            buffer1[count][n] = line[n]; // copy over to shared 2d unbounded buffer
+        else {
+            for (size_t n = 0; n < len; ++n) {
+                buffer1[count][n] = line[n]; // copy over to shared 2d unbounded buffer
+            }
         }
 
         count += 1;
@@ -82,18 +90,13 @@ void *lineSeparator(void *args){
         }
         pthread_mutex_unlock(&mutex1);
 
-        if (strcmp(buffer1[count], "STOP\n") == 0) {
+        if (strcmp(buffer1[count], str) == 0) {
             stop = 1;
+            strcpy(buffer2[count], str);
         } // Normal exit
 
-        size_t len = strlen(buffer1[count]);
-
-        if (stop == 1) { // write the line space with stop to distinguish it
-            for (size_t n = 0; n < len; ++n) {
-                buffer2[count][n] = buffer1[count][n];
-            }
-        }
         else {
+            size_t len = strlen(buffer1[count]);
             for (size_t n = 0; n < len; ++n) {
                 buffer2[count][n] = (buffer1[count][n] == '\n') ? ' ' :
                                     buffer1[count][n];
@@ -125,14 +128,17 @@ void *plusSign(void *args){
         }
         pthread_mutex_unlock(&mutex2);
 
-        if (strcmp(buffer2[count], "STOP\n") == 0) {
+        if (strcmp(buffer2[count], str) == 0) {
             stop = 1;
+            strcpy(buffer3[count], str);
         } // Normal exit
 
-        size_t len = strlen(buffer2[count]);
-        for (size_t n = 0; n < len; ++n, ++output_idx) {
-            buffer3[count][output_idx] = (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') ? n+=1, '^' :
-                                buffer2[count][n];
+        else {
+            size_t len = strlen(buffer2[count]);
+            for (size_t n = 0; n < len; ++n, ++output_idx) {
+                buffer3[count][output_idx] = (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') ? n+=1, '^' :
+                                    buffer2[count][n];
+            }
         }
         output_idx = 0;
         count += 1;
@@ -161,20 +167,21 @@ void *output(void *args){
         }
         pthread_mutex_unlock(&mutex3);
 
-        if (strcmp(buffer2[count], "STOP\n") == 0) {
+        if (strcmp(buffer2[count], str) == 0) {
             stop = 1;
-
         } // Normal exit
 
-        size_t len = strlen(buffer3[count]);
-        for (size_t n = 0; n < len; ++n) {
-            buffer4[output_idx] = buffer3[count][n];
-            if (++output_idx == 80) {
-                fwrite(buffer4, 1, 80, stdout);
-                putchar('\n');
-                fflush(stdout);
-                output_idx = 0;
-                memset(buffer4, 0, sizeof buffer4);
+        else {
+            size_t len = strlen(buffer3[count]);
+            for (size_t n = 0; n < len; ++n) {
+                buffer4[output_idx] = buffer3[count][n];
+                if (++output_idx == 80) {
+                    fwrite(buffer4, 1, 80, stdout);
+                    putchar('\n');
+                    fflush(stdout);
+                    output_idx = 0;
+                    memset(buffer4, 0, sizeof buffer4);
+                }
             }
         }
 
