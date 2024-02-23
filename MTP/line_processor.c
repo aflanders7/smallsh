@@ -53,29 +53,11 @@ void *getInput(void *args){
             else err(1, "stdin");
         }
         if (strcmp(line, "STOP\n") == 0) break; // Normal exit
+
         for (size_t n = 0; n < len; ++n) {
             outbuf1[op] = (line[n] == '+' && line[n+1] == '+') ? n+=1, '^' :
                          (line[n] == '\n')                    ? ' ' :
                          line[n];
-
-            /*
-            if (++op == 80) {
-                fwrite(outbuf1, 1, 80, stdout);
-                putchar('\n');
-                fflush(stdout);
-                op = 0;
-            }  */
-
-            /*
-            in_current_idx = (++op) % 80;
-            // fprintf(stderr, "%zu", in_current_idx);
-            fprintf(stderr, "%zu", op);
-            if (in_current_idx == 0) {
-                fwrite(outbuf1, 1, 80, stdout);
-                putchar('\n');
-                fflush(stdout);
-                in_current_idx = 0;
-            } */
             op++;
 
             if (pthread_mutex_trylock(&mutex1) == 0) {
@@ -88,6 +70,7 @@ void *getInput(void *args){
     }
 
     free(line);
+    return NULL;
 }
 
 void *lineSeparator(void *args){
@@ -100,6 +83,7 @@ void *lineSeparator(void *args){
     char outbuf4[80];
 
     for (;;) {
+
         if (pthread_mutex_trylock(&mutex1) == 0) {
             in_max_idx = out_shared1;
             pthread_mutex_unlock(&mutex1);
