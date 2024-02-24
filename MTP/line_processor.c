@@ -13,7 +13,11 @@
 char *str = "ğğ";
 
 // buffer for input and line separator
-char buffer1[LINE][SIZE];
+// char *buffer1 = malloc(LINE*SIZE*sizeof(char));
+
+
+// char buffer1[LINE][SIZE];
+char (*buffer1)[SIZE];
 // index input
 size_t out_idx1 = 0; // using out shared index to keep track of if the buffer is full
 // mutex
@@ -23,7 +27,7 @@ pthread_cond_t buf1_full = PTHREAD_COND_INITIALIZER;
 
 
 // buffer for line separator and plus sign
-char buffer2[LINE][SIZE];
+char (*buffer2)[SIZE];
 // index input
 size_t out_idx2 = 0;
 // mutex
@@ -33,7 +37,7 @@ pthread_cond_t buf2_full = PTHREAD_COND_INITIALIZER;
 
 
 // buffer for plus sign and output
-char buffer3[LINE][SIZE];
+char (*buffer3)[SIZE];
 // index input
 size_t out_idx3 = 0;
 // mutex
@@ -135,9 +139,15 @@ void *plusSign(void *args){
 
         else {
             size_t len = strlen(buffer2[count]);
-            for (size_t n = 0; n < len; ++n, ++output_idx) {
-                buffer3[count][output_idx] = (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') ? n+=1, '^' :
-                                    buffer2[count][n];
+            for (size_t n = 0; n < len; ++n) {
+                if (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') {
+                    buffer3[count][output_idx] = '^';
+                    n+=1;
+                }
+                else {
+                    buffer3[count][output_idx] = buffer2[count][n];
+                }
+                output_idx += 1;
             }
         }
         output_idx = 0;
@@ -193,6 +203,10 @@ void *output(void *args){
 }
 
 int main(void) {
+    buffer1 = malloc(sizeof(int[LINE][SIZE]));
+    buffer2 = malloc(sizeof(int[LINE][SIZE]));
+    buffer3 = malloc(sizeof(int[LINE][SIZE]));
+
     pthread_t in, ls, ps, op;
     pthread_create(&in, NULL, getInput, NULL);
     pthread_create(&ls, NULL, lineSeparator, NULL);
@@ -205,5 +219,8 @@ int main(void) {
     // fprintf(stderr, "ps finished");
     pthread_join(op, NULL);
     //fprintf(stderr, "op finished");
+    free(buffer1);
+    free(buffer2);
+    free(buffer3);
     return 0;
 }
