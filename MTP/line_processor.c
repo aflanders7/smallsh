@@ -52,6 +52,7 @@ void *getInput(void *args){
     int stop = 0;
     size_t count = 0; // the line count
     size_t output_idx = 0;
+    char buffer[1000];
 
     while (stop == 0) {
         ssize_t len = getline(&line, &n, stdin);
@@ -65,8 +66,10 @@ void *getInput(void *args){
         } // Normal exit
 
         else {
+            output_idx = 0;
             for (size_t n = 0; n < len; ++n) {
-                buffer1[count][n] = line[n]; // copy over to shared 2d unbounded buffer
+                buffer1[count][output_idx] = line[n];
+                output_idx++;
             }
         }
 
@@ -78,6 +81,7 @@ void *getInput(void *args){
             pthread_cond_signal(&buf1_full);
         }
     }
+    pthread_cond_signal(&buf1_full);
 
     free(line);
     return NULL;
@@ -86,6 +90,7 @@ void *getInput(void *args){
 void *lineSeparator(void *args){
     int stop = 0;
     size_t count = 0; // the line count
+    size_t output_idx = 0;
 
     while (stop == 0) {
         pthread_mutex_lock(&mutex1);
@@ -100,10 +105,12 @@ void *lineSeparator(void *args){
         } // Normal exit
 
         else {
-            size_t len = strlen(buffer1[count]);
+            ssize_t len = sizeof(buffer1[count]);
+            output_idx = 0;
             for (size_t n = 0; n < len; ++n) {
-                buffer2[count][n] = (buffer1[count][n] == '\n') ? ' ' :
-                                    buffer1[count][n];
+                buffer2[count][output_idx] = (buffer1[count][n] == '\n') ? ' ' :
+                                            buffer1[count][n];
+                output_idx++;
             }
         }
 
@@ -116,6 +123,7 @@ void *lineSeparator(void *args){
         }
 
     }
+    pthread_cond_signal(&buf2_full);
 
     return NULL;
 }
@@ -138,19 +146,14 @@ void *plusSign(void *args){
         } // Normal exit
 
         else {
-            size_t len = strlen(buffer2[count]);
+            output_idx = 0;
+            ssize_t len = sizeof(buffer2[count]);
             for (size_t n = 0; n < len; ++n) {
-                if (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') {
-                    buffer3[count][output_idx] = '^';
-                    n+=1;
-                }
-                else {
-                    buffer3[count][output_idx] = buffer2[count][n];
-                }
-                output_idx += 1;
+                buffer3[count][output_idx] = (buffer2[count][n] == '+' && buffer2[count][n+1] == '+') ? n+=1, '^' :
+                                             buffer2[count][n];
+                output_idx++;
             }
         }
-        output_idx = 0;
         count += 1;
 
         if (pthread_mutex_trylock(&mutex3) == 0 || stop == 1) { // need to update if stopping
@@ -160,6 +163,7 @@ void *plusSign(void *args){
         }
 
     }
+    pthread_cond_signal(&buf3_full);
 
     return NULL;
 }
