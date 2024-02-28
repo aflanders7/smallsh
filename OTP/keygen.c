@@ -9,7 +9,6 @@ int main (int argc, char *argv[])
     count = atoi(argv[1]);
     for (int i = 0; i < count; ++i) {
         int index = rand() % 27;
-        // fprintf(stderr, "%d", index);
         char c = allowed_characters[index];
         putchar(c);
     }
