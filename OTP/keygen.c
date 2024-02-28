@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static char const allowed_characters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n";
+static char const allowed_characters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
 
 int main (int argc, char *argv[])
 {
-    int *count;
-    count = argv[1];
-    fprintf(stderr, "%d", count);
+    int count;
+    count = atoi(argv[1]);
     for (int i = 0; i < count; ++i) {
         int index = rand() % 27;
+        fprintf(stderr, "%d")
         char c = allowed_characters[index];
         putchar(c);
     }
