@@ -23,6 +23,9 @@ void error(const char *msg) {
 void setupAddressStruct(struct sockaddr_in* address,
                         int portNumber,
                         char* hostname){
+    int sfd, s;
+    struct addrinfo  hints;
+    struct addrinfo  *result, *rp;
 
     // Clear out the address struct
     memset((char*) address, '\0', sizeof(*address));
@@ -33,12 +36,12 @@ void setupAddressStruct(struct sockaddr_in* address,
     address->sin_port = htons(portNumber);
 
     // Get the DNS entry for this host name
-    struct hostent* hostInfo = gethostbyname("localhost");
+    struct hostent* hostInfo = gethostbyname(hostname); // use getaddrinfo and getnameinfo
+    s = getaddrinfo(hostname, portNumber, &hints, &result); // port may need to be decimal (?)
     if (hostInfo == NULL) {
         fprintf(stderr, "CLIENT: ERROR, no such host\n");
         exit(0);
     }
-
     // Copy the first IP address from the DNS entry to sin_addr.s_addr
     memcpy((char*) &address->sin_addr.s_addr,
            hostInfo->h_addr_list[0],
@@ -47,13 +50,23 @@ void setupAddressStruct(struct sockaddr_in* address,
 
 int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
+    int s;
     struct sockaddr_in serverAddress;
     char buffer[256];
+    struct addrinfo          hints;
+    struct addrinfo          *result, *rp;
+
     // Check usage & args
     if (argc < 3) {
         fprintf(stderr,"USAGE: %s hostname port\n", argv[0]);
         exit(0);
     }
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          /* Any protocol */
 
     // Create a socket
     socketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -62,12 +75,20 @@ int main(int argc, char *argv[]) {
     }
 
     // Set up the server address struct
-    setupAddressStruct(&serverAddress, atoi(argv[3]), argv[2]);
+    // setupAddressStruct(&serverAddress, atoi(argv[2]), argv[1]);
+    s = getaddrinfo(argv[1], argv[2], &hints, &result);
+    if (s != 0) {
+        fprintf(stderr, "CLIENT: ERROR, no such host\n");
+        exit(0);
+    }
 
     // Connect to server
-    if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
+    if (connect(socketFD, result->ai_addr, result->ai_addrlen) < 0){
         error("CLIENT: ERROR connecting");
     }
+
+    freeaddrinfo(result);
+
     // Get input message from user
     printf("CLIENT: Enter text to send to the server, and then hit enter: ");
     // Clear out the buffer array
