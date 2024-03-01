@@ -5,6 +5,7 @@
 #include <sys/types.h>  // ssize_t
 #include <sys/socket.h> // send(),recv()
 #include <netdb.h>      // gethostbyname()
+#include <sys/stat.h>
 
 /**
 * Client code
@@ -49,6 +50,20 @@ int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     char buffer[256];
+
+    struct stat buf1;
+    stat(argv[1], &buf1);
+    off_t size1 = buf1.st_size;
+
+    struct stat buf2;
+    stat(argv[2], &buf2);
+    off_t size2 = buf2.st_size;
+
+    if (size1 > size2) {
+        fprintf(stderr, "CLIENT: ERROR, key is shorter than text\n");
+        exit(1);
+    }
+
     // Check usage & args
     if (argc < 3) {
         fprintf(stderr,"USAGE: %s hostname port\n", argv[0]);
