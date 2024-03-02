@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     off_t size2 = buf2.st_size;
 
     if (size1 > size2) {
-        fprintf(stderr, "CLIENT: ERROR, key is shorter than text\n");
+        fprintf(stderr, "CLIENT: ERROR, key is shorter than text\n"); // TODO also error if invalid char
         exit(1);
     }
 

@@ -5,4 +5,5 @@ set(CMAKE_C_STANDARD 99)
 
 add_executable(OTP
         keygen.c
-        enc_client.c)
+        enc_client.c
+        enc_server.c)

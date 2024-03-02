@@ -57,14 +57,17 @@ int main(int argc, char *argv[]){
 
     // Start listening for connetions. Allow up to 5 connections to queue up
     listen(listenSocket, 5);
+    fprintf(stderr, "got here 1");
 
     // Accept a connection, blocking if one is not available until one connects
     while(1){
+        fprintf(stderr, "got here 2");
         // Accept the connection request which creates a connection socket
         connectionSocket = accept(listenSocket,
                                   (struct sockaddr *)&clientAddress,
                                   &sizeOfClientInfo);
         if (connectionSocket < 0){
+            fprintf(stderr, "error, no socket");
             error("ERROR on accept");
         }
 
