@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <dirent.h>
 
 // Error function used for reporting issues
 void error(const char *msg) {

@@ -6,6 +6,7 @@
 #include <sys/socket.h> // send(),recv()
 #include <netdb.h>      // gethostbyname()
 #include <sys/stat.h>
+#include <dirent.h>
 
 /**
 * Client code
@@ -50,10 +51,16 @@ int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     char buffer[256];
+    FILE *plaintext = NULL;
+    // int size1;
+    FILE *mykey = NULL;
+    // int size2;
+    int stop = 0;
 
+    // Make sure input file sizes and chars are good
     struct stat buf1;
     stat(argv[1], &buf1);
-    off_t size1 = buf1.st_size;
+    off_t size1 = buf1.st_size; // need to figure out how to deal with buffer sizes
 
     struct stat buf2;
     stat(argv[2], &buf2);
@@ -63,6 +70,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "CLIENT: ERROR, key is shorter than text\n"); // TODO also error if invalid char
         exit(1);
     }
+
 
     // Check usage & args
     if (argc < 3) {
@@ -83,23 +91,20 @@ int main(int argc, char *argv[]) {
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
         error("CLIENT: ERROR connecting");
     }
-    // Get input message from user
-    printf("CLIENT: Enter text to send to the server, and then hit enter: ");
-    // Clear out the buffer array
-    memset(buffer, '\0', sizeof(buffer));
-    // Get input from the user, trunc to buffer - 1 chars, leaving \0
-    fgets(buffer, sizeof(buffer) - 1, stdin);
-    // Remove the trailing \n that fgets adds
-    buffer[strcspn(buffer, "\n")] = '\0';
+    // Get input from files
+    plaintext = fopen(argv[1], "r");
+    mykey = fopen(argv[2], "r");
 
     // Send message to server
     // Write to the server
-    charsWritten = send(socketFD, buffer, strlen(buffer), 0);
-    if (charsWritten < 0){
-        error("CLIENT: ERROR writing to socket");
-    }
-    if (charsWritten < strlen(buffer)){
-        printf("CLIENT: WARNING: Not all data written to socket!\n");
+    for (;;) { // based on base64 code
+        size_t nr = fread(buffer, 1, sizeof(buffer), plaintext);
+        if (nr == 0) break;
+        // fwrite won;t work for in socketFD??
+        size_t nw = write(socketFD, buffer, nr);
+        if (nr < nw){
+            printf("CLIENT: WARNING: Not all data written to socket!\n");
+        }
     }
 
     // Get return message from server
