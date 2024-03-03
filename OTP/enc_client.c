@@ -97,21 +97,15 @@ int main(int argc, char *argv[]) {
     mykey = fopen(argv[2], "r");
 
     for (;;) { // based on base64 code
-        // put data in the buffer and write to socket
+        // put key and text in the buffer
         size_t nr = fread(buffer, 1, 1, plaintext);
         buf[0] = buffer[0];
-        if (feof(plaintext)) break;
-        //if (nr == 0) break;
-        //size_t nw = write(socketFD, buffer, nr);
+        if (feof(plaintext)) break; //if (nr == 0) break;
         memset(buffer, '\0', sizeof(buffer));
         fread(buffer, 1, 1, mykey);
         buf[1] = buffer[0];
 
-
-
-        //fread(buffer, 1, 1, mykey);
-        //write(socketFD, buffer, nr);
-
+        // write to socket
         write(socketFD, buf, sizeof(buf));
 
         memset(buffer, '\0', sizeof(buffer));

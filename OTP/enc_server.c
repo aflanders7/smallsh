@@ -88,9 +88,9 @@ int main(int argc, char *argv[]){
             // do the encryption here
             char str = buffer[0];
             char key = buffer[1];
-            // memset(buffer1, '\0', sizeof(buffer1));
-            //buffer[0] = str;
-            buffer2[0] = key;
+            char enc_val = (str + key) % 26 + 'A';
+
+            buffer2[0] = enc_val;
 
             // send encrypted data
             size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
