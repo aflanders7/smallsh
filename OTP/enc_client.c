@@ -98,35 +98,26 @@ int main(int argc, char *argv[]) {
     // Send message to server
     // Write to the server
     for (;;) { // based on base64 code
+        // put data in the buffer
         size_t nr = fread(buffer, 1, sizeof(buffer), plaintext);
         if (nr == 0) break;
-        // fwrite won;t work for in socketFD??
+
+        // write data to server via socket
         size_t nw = write(socketFD, buffer, nr);
-        if (nr < nw){
-            printf("CLIENT: WARNING: Not all data written to socket!\n");
-        }
         memset(buffer, '\0', sizeof(buffer));
 
         // Get return message from server
         charsRead = read(socketFD, buffer, sizeof(buffer));
         printf("%s", buffer);
+
+        if (nw<0 || charsRead<0){
+            fprintf(stderr, "client error: reading or writing to socket");
+        }
     }
 
 
     // Clear out the buffer again for reuse
     memset(buffer, '\0', sizeof(buffer));
-    // Read data from the socket, leaving \0 at end
-    /*
-    for (;;) {
-        charsRead = read(socketFD, buffer, sizeof(buffer));
-        if (charsRead == 0) break; // in case exactly 256
-        printf("%s", buffer);
-        if (charsRead < 256) break;
-    } */
-
-    if (charsRead < 0){
-        error("CLIENT: ERROR reading from socket");
-    }
 
     // Close the socket
     close(socketFD);

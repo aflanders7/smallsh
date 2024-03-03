@@ -56,19 +56,17 @@ int main(int argc, char *argv[]){
         error("ERROR on binding");
     }
 
-    // Start listening for connetions. Allow up to 5 connections to queue up
+    // Start listening for connections. Allow up to 5 connections to queue up
     listen(listenSocket, 5);
     fprintf(stderr, "got here 1");
 
     // Accept a connection, blocking if one is not available until one connects
     while(1){
-        fprintf(stderr, "got here 2");
         // Accept the connection request which creates a connection socket
         connectionSocket = accept(listenSocket,
                                   (struct sockaddr *)&clientAddress,
                                   &sizeOfClientInfo);
         if (connectionSocket < 0){
-            fprintf(stderr, "error, no socket");
             error("ERROR on accept");
         }
 
@@ -76,24 +74,26 @@ int main(int argc, char *argv[]){
                ntohs(clientAddress.sin_addr.s_addr),
                ntohs(clientAddress.sin_port));
 
-        // Get the message from the client and display it
+        // Send and receive the data
         memset(buffer, '\0', sizeof(buffer));
-        // Read the client's message from the socket
+
         for (;;) {
-            size_t charsRead = recv(connectionSocket, buffer, sizeof(buffer), 0); // socket, buffer, size, flags
-            if (charsRead < 0){
-                error("ERROR reading from socket");
-            }
+            // Read the client's message from the socket until no chars left
+            size_t charsRead = read(connectionSocket, buffer, sizeof(buffer));
             if (charsRead == 0) break;
+
             // do the encryption here
-            size_t nw = send(connectionSocket, buffer, charsRead, 0); // socket, buffer, size, flags
-            if (nw < 0){
-                error("ERROR writing to socket");
-            }
+
+            // send encrypted data
+            size_t nw = write(connectionSocket, buffer, charsRead);
+
             memset(buffer, '\0', sizeof(buffer));
+
+            if (nw<0){
+                fprintf(stderr, "client error: writing to socket");
+            }
         }
 
-        // Send a Success message back to the client
 
         // Close the connection socket for this client
         close(connectionSocket);
