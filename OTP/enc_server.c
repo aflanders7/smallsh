@@ -86,15 +86,17 @@ int main(int argc, char *argv[]){
             // read(connectionSocket, buffer2, sizeof(buffer2));
 
             // do the encryption here
-            //char str = buffer[0];
-            //char key = buffer[1];
+            char str = buffer[0];
+            char key = buffer[1];
             // memset(buffer1, '\0', sizeof(buffer1));
             //buffer[0] = str;
+            buffer2[0] = key;
 
             // send encrypted data
-            size_t nw = write(connectionSocket, buffer, sizeof(buffer));
+            size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
 
             memset(buffer, '\0', sizeof(buffer));
+            memset(buffer2, '\0', sizeof(buffer));
 
             if (nw<0){
                 fprintf(stderr, "client error: writing to socket");

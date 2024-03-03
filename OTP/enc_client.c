@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
     char buffer[10];
+    char buf[10];
     FILE *plaintext = NULL;
     // int size1;
     FILE *mykey = NULL;
@@ -98,21 +99,29 @@ int main(int argc, char *argv[]) {
     for (;;) { // based on base64 code
         // put data in the buffer and write to socket
         size_t nr = fread(buffer, 1, 1, plaintext);
-        size_t nw = write(socketFD, buffer, nr);
-
-        if (nr == 0) break;
+        buf[0] = buffer[0];
+        if (feof(plaintext)) break;
+        //if (nr == 0) break;
+        //size_t nw = write(socketFD, buffer, nr);
         memset(buffer, '\0', sizeof(buffer));
-
         fread(buffer, 1, 1, mykey);
-        write(socketFD, buffer, nr);
+        buf[1] = buffer[0];
+
+
+
+        //fread(buffer, 1, 1, mykey);
+        //write(socketFD, buffer, nr);
+
+        write(socketFD, buf, sizeof(buf));
 
         memset(buffer, '\0', sizeof(buffer));
+        memset(buf, '\0', sizeof(buffer));
 
         // Get return message from server
         charsRead = read(socketFD, buffer, sizeof(buffer));
-        printf("1 %s", buffer);
+        printf("%s", buffer);
 
-        if (nw<0 || charsRead<0){
+        if (nr<0 || charsRead<0){
             fprintf(stderr, "client error: reading or writing to socket");
         }
     }
