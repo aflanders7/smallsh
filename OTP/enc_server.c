@@ -30,7 +30,8 @@ void setupAddressStruct(struct sockaddr_in* address,
 
 int main(int argc, char *argv[]){
     int connectionSocket;
-    char buffer[20];
+    char buffer[10];
+    char buffer2[10];
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
 
@@ -81,11 +82,17 @@ int main(int argc, char *argv[]){
             // Read the client's message from the socket until no chars left
             size_t charsRead = read(connectionSocket, buffer, sizeof(buffer));
             if (charsRead == 0) break;
+            // read key
+            // read(connectionSocket, buffer2, sizeof(buffer2));
 
             // do the encryption here
+            //char str = buffer[0];
+            //char key = buffer[1];
+            // memset(buffer1, '\0', sizeof(buffer1));
+            //buffer[0] = str;
 
             // send encrypted data
-            size_t nw = write(connectionSocket, buffer, charsRead);
+            size_t nw = write(connectionSocket, buffer, sizeof(buffer));
 
             memset(buffer, '\0', sizeof(buffer));
 

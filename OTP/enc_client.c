@@ -50,7 +50,7 @@ void setupAddressStruct(struct sockaddr_in* address,
 int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
-    char buffer[20];
+    char buffer[10];
     FILE *plaintext = NULL;
     // int size1;
     FILE *mykey = NULL;
@@ -95,20 +95,22 @@ int main(int argc, char *argv[]) {
     plaintext = fopen(argv[1], "r");
     mykey = fopen(argv[2], "r");
 
-    // Send message to server
-    // Write to the server
     for (;;) { // based on base64 code
-        // put data in the buffer
-        size_t nr = fread(buffer, 1, sizeof(buffer), plaintext);
-        if (nr == 0) break;
-
-        // write data to server via socket
+        // put data in the buffer and write to socket
+        size_t nr = fread(buffer, 1, 1, plaintext);
         size_t nw = write(socketFD, buffer, nr);
+
+        if (nr == 0) break;
+        memset(buffer, '\0', sizeof(buffer));
+
+        fread(buffer, 1, 1, mykey);
+        write(socketFD, buffer, nr);
+
         memset(buffer, '\0', sizeof(buffer));
 
         // Get return message from server
         charsRead = read(socketFD, buffer, sizeof(buffer));
-        printf("%s", buffer);
+        printf("1 %s", buffer);
 
         if (nw<0 || charsRead<0){
             fprintf(stderr, "client error: reading or writing to socket");
