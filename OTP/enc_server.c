@@ -79,7 +79,8 @@ int main(int argc, char *argv[]){
         // Get the message from the client and display it
         memset(buffer, '\0', 256);
         // Read the client's message from the socket
-        charsRead = recv(connectionSocket, buffer, 255, 0);
+        charsRead = recv(connectionSocket, buffer, 255, 0); // socket, buffer, size, flags
+        fprintf(stderr, "%d %s", charsRead, buffer);
         if (charsRead < 0){
             error("ERROR reading from socket");
         }
@@ -87,7 +88,7 @@ int main(int argc, char *argv[]){
 
         // Send a Success message back to the client
         charsRead = send(connectionSocket,
-                         "I am the server, and I got your message", 39, 0);
+                         buffer, sizeof(buffer), 0); // socket, buffer, size, flags
         if (charsRead < 0){
             error("ERROR writing to socket");
         }
