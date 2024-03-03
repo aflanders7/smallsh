@@ -50,7 +50,7 @@ void setupAddressStruct(struct sockaddr_in* address,
 int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
-    char buffer[256];
+    char buffer[20];
     FILE *plaintext = NULL;
     // int size1;
     FILE *mykey = NULL;
@@ -105,17 +105,28 @@ int main(int argc, char *argv[]) {
         if (nr < nw){
             printf("CLIENT: WARNING: Not all data written to socket!\n");
         }
+        memset(buffer, '\0', sizeof(buffer));
+
+        // Get return message from server
+        charsRead = read(socketFD, buffer, sizeof(buffer));
+        printf("%s", buffer);
     }
 
-    // Get return message from server
+
     // Clear out the buffer again for reuse
     memset(buffer, '\0', sizeof(buffer));
     // Read data from the socket, leaving \0 at end
-    charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0);
+    /*
+    for (;;) {
+        charsRead = read(socketFD, buffer, sizeof(buffer));
+        if (charsRead == 0) break; // in case exactly 256
+        printf("%s", buffer);
+        if (charsRead < 256) break;
+    } */
+
     if (charsRead < 0){
         error("CLIENT: ERROR reading from socket");
     }
-    printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
 
     // Close the socket
     close(socketFD);

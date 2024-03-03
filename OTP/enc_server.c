@@ -29,8 +29,8 @@ void setupAddressStruct(struct sockaddr_in* address,
 }
 
 int main(int argc, char *argv[]){
-    int connectionSocket, charsRead;
-    char buffer[256];
+    int connectionSocket;
+    char buffer[20];
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
 
@@ -77,21 +77,24 @@ int main(int argc, char *argv[]){
                ntohs(clientAddress.sin_port));
 
         // Get the message from the client and display it
-        memset(buffer, '\0', 256);
+        memset(buffer, '\0', sizeof(buffer));
         // Read the client's message from the socket
-        charsRead = recv(connectionSocket, buffer, 255, 0); // socket, buffer, size, flags
-        fprintf(stderr, "%d %s", charsRead, buffer);
-        if (charsRead < 0){
-            error("ERROR reading from socket");
+        for (;;) {
+            size_t charsRead = recv(connectionSocket, buffer, sizeof(buffer), 0); // socket, buffer, size, flags
+            if (charsRead < 0){
+                error("ERROR reading from socket");
+            }
+            if (charsRead == 0) break;
+            // do the encryption here
+            size_t nw = send(connectionSocket, buffer, charsRead, 0); // socket, buffer, size, flags
+            if (nw < 0){
+                error("ERROR writing to socket");
+            }
+            memset(buffer, '\0', sizeof(buffer));
         }
-        printf("SERVER: I received this from the client: \"%s\"\n", buffer);
 
         // Send a Success message back to the client
-        charsRead = send(connectionSocket,
-                         buffer, sizeof(buffer), 0); // socket, buffer, size, flags
-        if (charsRead < 0){
-            error("ERROR writing to socket");
-        }
+
         // Close the connection socket for this client
         close(connectionSocket);
     }
