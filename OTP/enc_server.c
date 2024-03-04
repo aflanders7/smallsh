@@ -10,10 +10,12 @@
 #include <errno.h>
 #include <signal.h>
 
-static void /* SIGCHLD handler to reap dead child processes */
-grimReaper(int sig)
+// handler for child processes
+// Source: Linux Programming Interface chapter 60.3
+static void
+handler(int sig)
 {
-    int savedErrno; /* Save 'errno' in case changed here */
+    int savedErrno;
     savedErrno = errno;
     while (waitpid(-1, NULL, WNOHANG) > 0)
         continue;
@@ -32,17 +34,14 @@ handleRequest(int connectionSocket) {
         // Read the client's message from the socket until no chars left
         size_t charsRead = read(connectionSocket, buffer, sizeof(buffer));
         if (charsRead == 0) break;
-        // read key
-        // read(connectionSocket, buffer2, sizeof(buffer2));
 
         // do the encryption here
         char str = buffer[0];
         char key = buffer[1];
         char enc_val = (str + key) % 26 + 'A';
 
-        buffer2[0] = enc_val;
-
         // send encrypted data
+        buffer2[0] = enc_val;
         size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
 
         memset(buffer, '\0', sizeof(buffer));
@@ -77,7 +76,7 @@ void setupAddressStruct(struct sockaddr_in* address,
 }
 
 int main(int argc, char *argv[]){
-    int connectionSocket;
+    int connectionSocket, listenSocket;
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
     struct sigaction sa;
@@ -88,16 +87,17 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
+    // Initialize sigaction for forking
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
-    sa.sa_handler = grimReaper;
+    sa.sa_handler = handler;
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
         fprintf(stderr, "Error from sigaction");
         exit(EXIT_FAILURE);
     }
 
     // Create the socket that will listen for connections
-    int listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+    listenSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (listenSocket < 0) {
         error("ERROR opening socket");
     }
@@ -115,7 +115,6 @@ int main(int argc, char *argv[]){
     // Start listening for connections. Allow up to 5 connections to queue up
     listen(listenSocket, 5);
 
-    // Accept a connection, blocking if one is not available until one connects
     for (;;) {
         // Accept the connection request which creates a connection socket
         connectionSocket = accept(listenSocket,
@@ -125,19 +124,20 @@ int main(int argc, char *argv[]){
             error("ERROR on accept");
         }
 
-        // Send and receive the data
+        // Use child processes to send and receive the data
+        // forking source: The Linux programming Interface, chapter 60.3
         switch (fork()) {
             case -1:
                 perror("fork() failed\n");
-                close(connectionSocket); /* Give up on this client */
-                break; /* May be temporary; try next client */
-            case 0: /* Child */
-                close(listenSocket); /* Unneeded copy of listening socket */
+                close(connectionSocket);
+                break;
+            case 0: // Child
+                close(listenSocket);
                 handleRequest(connectionSocket);
                 _exit(EXIT_SUCCESS);
-            default: /* Parent */
-                close(connectionSocket); /* Unneeded copy of connected socket */
-                break; /* Loop to accept next connection */
+            default: // Parent
+                close(connectionSocket);
+                break;
         }
     }
     // Close the listening socket
