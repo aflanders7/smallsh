@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/types.h>  // ssize_t
-#include <sys/socket.h> // send(),recv()
-#include <netdb.h>      // gethostbyname()
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <sys/stat.h>
 #include <dirent.h>
 
@@ -50,18 +50,15 @@ void setupAddressStruct(struct sockaddr_in* address,
 int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
     struct sockaddr_in serverAddress;
-    char buffer[10];
-    char buf[10];
+    char buffer1[10];
+    char buffer2[10];
     FILE *plaintext = NULL;
-    // int size1;
     FILE *mykey = NULL;
-    // int size2;
-    int stop = 0;
 
     // Make sure input file sizes and chars are good
     struct stat buf1;
     stat(argv[1], &buf1);
-    off_t size1 = buf1.st_size; // need to figure out how to deal with buffer sizes
+    off_t size1 = buf1.st_size;
 
     struct stat buf2;
     stat(argv[2], &buf2);
@@ -71,7 +68,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "CLIENT: ERROR, key is shorter than text\n"); // TODO also error if invalid char
         exit(1);
     }
-
 
     // Check usage & args
     if (argc < 3) {
@@ -97,32 +93,37 @@ int main(int argc, char *argv[]) {
     mykey = fopen(argv[2], "r");
 
     for (;;) { // based on base64 code
-        // put key and text in the buffer
-        size_t nr = fread(buffer, 1, 1, plaintext);
-        buf[0] = buffer[0];
+        // Read text char into buffer1 until there are no more characters
+        size_t nr = fread(buffer1, 1, 1, plaintext);
+
+        // Place text char into buffer2
+        buffer2[0] = buffer1[0];
         if (feof(plaintext)) break; //if (nr == 0) break;
-        memset(buffer, '\0', sizeof(buffer));
-        fread(buffer, 1, 1, mykey);
-        buf[1] = buffer[0];
+        memset(buffer1, '\0', sizeof(buffer1));
+
+        // Read key char into buffer1 until there are no more characters
+        fread(buffer1, 1, 1, mykey);
+
+        // Place key char into buffer2
+        buffer2[1] = buffer1[0];
 
         // write to socket
-        write(socketFD, buf, sizeof(buf));
+        write(socketFD, buffer2, sizeof(buffer2));
 
-        memset(buffer, '\0', sizeof(buffer));
-        memset(buf, '\0', sizeof(buffer));
+        memset(buffer1, '\0', sizeof(buffer1));
+        memset(buffer2, '\0', sizeof(buffer2));
 
-        // Get return message from server
-        charsRead = read(socketFD, buffer, sizeof(buffer));
-        printf("%s", buffer);
+        // Get return encrypted char from server
+        charsRead = read(socketFD, buffer1, sizeof(buffer1));
+        printf("%s", buffer1);
 
         if (nr<0 || charsRead<0){
             fprintf(stderr, "client error: reading or writing to socket");
         }
     }
 
-
-    // Clear out the buffer again for reuse
-    memset(buffer, '\0', sizeof(buffer));
+    // Clear out the buffer1 again for reuse
+    memset(buffer1, '\0', sizeof(buffer1));
 
     // Close the socket
     close(socketFD);
