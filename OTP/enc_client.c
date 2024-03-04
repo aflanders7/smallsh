@@ -8,12 +8,6 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-/**
-* Client code
-* 1. Create a socket and connect to the server specified in the command arugments.
-* 2. Prompt the user for input and send that input as a message to the server.
-* 3. Print the message received from the server and exit the program.
-*/
 
 // Error function used for reporting issues
 void error(const char *msg) {
