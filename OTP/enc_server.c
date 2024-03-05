@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <signal.h>
 
+static char const allowed_characters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+
 // handler for child processes
 // Source: Linux Programming Interface chapter 60.3
 static void
@@ -38,10 +40,25 @@ handleRequest(int connectionSocket) {
         // do the encryption here
         char str = buffer[0];
         char key = buffer[1];
-        char enc_val = (str + key) % 26 + 'A';
+        int index = 0;
+        int key_index = 0;
+        if (str == ' ') {
+            index = 26;
+        }
+        else {
+            index = str - 'A';
+        }
+        if (key == ' ') {
+            key_index = 26;
+        }
+        else {
+            key_index = key - 'A';
+        }
+        int enc_val = (index + key_index + 27) % 27;
+
 
         // send encrypted data
-        buffer2[0] = enc_val;
+        buffer2[0] = allowed_characters[enc_val];
         size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
 
         memset(buffer, '\0', sizeof(buffer));
