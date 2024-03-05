@@ -92,9 +92,7 @@ int main(int argc, char *argv[]) {
 
         // Place text char into buffer2
         buffer2[0] = buffer1[0];
-        if (feof(plaintext)) {
-            printf(" ");
-            break;} //if (nr == 0) break;
+        if (feof(plaintext)) break; //if (nr == 0) break;
         memset(buffer1, '\0', sizeof(buffer1));
 
         // Read key char into buffer1 until there are no more characters

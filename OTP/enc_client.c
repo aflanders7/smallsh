@@ -91,10 +91,8 @@ int main(int argc, char *argv[]) {
         size_t nr = fread(buffer1, 1, 1, plaintext);
 
         // Place text char into buffer2
-        if (feof(plaintext)) {
-            printf(" ");
-            break;} //if (nr == 0) break;
         buffer2[0] = buffer1[0];
+        if (feof(plaintext)) break; //if (nr == 0) break;
         memset(buffer1, '\0', sizeof(buffer1));
 
         // Read key char into buffer1 until there are no more characters

@@ -37,28 +37,13 @@ handleRequest(int connectionSocket) {
         size_t charsRead = read(connectionSocket, buffer, sizeof(buffer));
         if (charsRead == 0) break;
 
-        // do the decryption here
+        // do the encryption here
         char str = buffer[0];
         char key = buffer[1];
-
-        int index = 0;
-        int key_index = 0;
-        if (str == ' ') {
-            index = 26;
-        }
-        else {
-            index = str - 'A';
-        }
-        if (key == ' ') {
-            key_index = 26;
-        }
-        else {
-            key_index = key - 'A';
-        }
-        int dec_val = (index - key_index + 81) % 27; // +81 to account for negatives
+        char enc_val = (str - key + 26) % 26 + 'A'; // decode, accounting for negative numbers
 
         // send encrypted data
-        buffer2[0] = allowed_characters[dec_val];
+        buffer2[0] = enc_val;
         size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
 
         memset(buffer, '\0', sizeof(buffer));
