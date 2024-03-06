@@ -47,10 +47,15 @@ handleRequest(int connectionSocket) {
         else {
             index = str - 'A';
         }
-        int dec_val = (index - key + 270) % 27; // +81 to account for negatives
+        int dec_val = (index - key + 270) % 27; // +270 to account for negatives
 
         // send encrypted data
-        buffer2[0] = allowed_characters[dec_val];
+        if (str == '\n') {
+            buffer2[0] = str;
+        }
+        else {
+            buffer2[0] = allowed_characters[dec_val];
+        }
         size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
 
         memset(buffer, '\0', sizeof(buffer));
