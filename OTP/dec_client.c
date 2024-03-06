@@ -90,6 +90,14 @@ int main(int argc, char *argv[]) {
         // Read text char into buffer1 until there are no more characters
         size_t nr = fread(buffer1, 1, 1, plaintext);
 
+        char str = buffer1[0];
+        // exit for invalid character
+        if ((str < 65 && str != ' ' && str != '\n') || str > 90){
+            close(socketFD);
+            fprintf(stderr, "CLIENT: ERROR, invalid character\n");
+            exit(1);
+        }
+
         // Place text char into buffer2
         buffer2[0] = buffer1[0];
         if (feof(plaintext)) break; //if (nr == 0) break;
