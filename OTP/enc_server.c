@@ -40,10 +40,17 @@ handleRequest(int connectionSocket) {
         // do the encryption here
         char str = buffer[0];
         char key = buffer[1];
-        char enc_val = (str + key) % 26 + 'A';
+        int index = 0;
+        if (str == ' ') {
+            index = 26;
+        }
+        else {
+            index = str - 'A';
+        }
+        int enc_val = (index + key) % 27;
 
         // send encrypted data
-        buffer2[0] = enc_val;
+        buffer2[0] = allowed_characters[enc_val];
         size_t nw = write(connectionSocket, buffer2, sizeof(buffer2));
 
         memset(buffer, '\0', sizeof(buffer));
