@@ -94,6 +94,7 @@ int main(int argc, char *argv[]){
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t sizeOfClientInfo = sizeof(clientAddress);
     struct sigaction sa;
+    int charRead = 0;
 
     // Check usage & args
     if (argc < 2) {
@@ -134,8 +135,19 @@ int main(int argc, char *argv[]){
         connectionSocket = accept(listenSocket,
                                   (struct sockaddr *)&clientAddress,
                                   &sizeOfClientInfo);
-        if (connectionSocket < 0){
-            error("ERROR on accept");
+        // handshake
+        char buffer[] = "e";
+        write(connectionSocket, buffer, sizeof(buffer));
+        for (;;) {
+            memset(buffer, '\0', sizeof(buffer));
+            charRead = read(connectionSocket, buffer, sizeof(buffer));
+            if (charRead > 0) {
+                char handshake = buffer[0];
+                if (handshake != 'e') {
+                    fprintf(stderr, "testing rejected %c", handshake);
+                }
+                break;
+            }
         }
 
         // Use child processes to send and receive the data

@@ -43,6 +43,7 @@ void setupAddressStruct(struct sockaddr_in* address,
 
 int main(int argc, char *argv[]) {
     int socketFD, portNumber, charsWritten, charsRead;
+    int charRead = 0;
     struct sockaddr_in serverAddress;
     char buffer1[10];
     char buffer2[10];
@@ -80,8 +81,24 @@ int main(int argc, char *argv[]) {
 
     // Connect to server
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
-        error("CLIENT: ERROR connecting");
+        error("CLIENT: ERROR connecting"); // TODO exit(2) with port number
     }
+
+    //handshake
+    char buffer[] = "e";
+    write(socketFD, buffer, sizeof(buffer));
+    for (;;) {
+        memset(buffer, '\0', sizeof(buffer));
+        charRead = read(socketFD, buffer, sizeof(buffer));
+        if (charRead > 0) {
+            char handshake = buffer[0];
+            if (handshake != 'e') {
+                fprintf(stderr, "Rejected, cannot use enc server");
+            }
+            break;
+        }
+    }
+
     // Get input from files
     plaintext = fopen(argv[1], "r");
     mykey = fopen(argv[2], "r");
