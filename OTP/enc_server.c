@@ -144,7 +144,7 @@ int main(int argc, char *argv[]){
             if (charRead > 0) {
                 char handshake = buffer[0];
                 if (handshake != 'e') {
-                    fprintf(stderr, "testing rejected %c", handshake);
+                    fprintf(stderr, "Client rejected");
                 }
                 break;
             }

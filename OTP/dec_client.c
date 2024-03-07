@@ -42,7 +42,7 @@ void setupAddressStruct(struct sockaddr_in* address,
 }
 
 int main(int argc, char *argv[]) {
-    int socketFD, portNumber, charsWritten, charsRead;
+    int socketFD, charsRead;
     int charRead = 0;
     struct sockaddr_in serverAddress;
     char buffer1[10];
@@ -93,7 +93,8 @@ int main(int argc, char *argv[]) {
         if (charRead > 0) {
             char handshake = buffer[0];
             if (handshake != 'd') {
-                fprintf(stderr, "Rejected, cannot use dec server");
+                fprintf(stderr, "CLIENT: ERROR connecting, cannot use port %s", argv[3]);
+                exit(2);
             }
             break;
         }

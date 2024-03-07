@@ -42,7 +42,7 @@ void setupAddressStruct(struct sockaddr_in* address,
 }
 
 int main(int argc, char *argv[]) {
-    int socketFD, portNumber, charsWritten, charsRead;
+    int socketFD, charsRead;
     int charRead = 0;
     struct sockaddr_in serverAddress;
     char buffer1[10];
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
 
     // Connect to server
     if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){
-        error("CLIENT: ERROR connecting"); // TODO exit(2) with port number
+        error("CLIENT: ERROR connecting");
     }
 
     //handshake
@@ -93,7 +93,8 @@ int main(int argc, char *argv[]) {
         if (charRead > 0) {
             char handshake = buffer[0];
             if (handshake != 'e') {
-                fprintf(stderr, "Rejected, cannot use enc server");
+                fprintf(stderr, "CLIENT: ERROR connecting, cannot use port %s", argv[3]);
+                exit(2);
             }
             break;
         }
